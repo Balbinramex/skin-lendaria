@@ -1,0 +1,3035 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Skin Lendaria - V2</title>
+  <style>
+    :root {
+      --panel: rgba(13, 16, 25, 0.86);
+      --panel-border: rgba(255, 245, 224, 0.18);
+      --accent: #f6d18b;
+      --text-main: #fff6e7;
+      --text-soft: #d9c9b2;
+      --danger: #ff776b;
+      --ok: #9be08d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top, rgba(246, 209, 139, 0.16), transparent 24%),
+        linear-gradient(180deg, #11131a 0%, #06070b 100%);
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--text-main);
+    }
+
+    .frame {
+      width: min(100vw, 1120px);
+      padding: 16px;
+    }
+
+    .game-shell {
+      position: relative;
+      overflow: hidden;
+      border-radius: 26px;
+      border: 1px solid rgba(255, 247, 232, 0.16);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow:
+        0 28px 70px rgba(34, 20, 18, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(8px);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 9;
+    }
+
+    .hud-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .hud {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      width: min(380px, calc(100% - 32px));
+      padding: 14px 14px 12px;
+      border-radius: 20px;
+      background: rgba(10, 12, 18, 0.62);
+      border: 1px solid rgba(255, 245, 225, 0.14);
+      box-shadow:
+        0 18px 36px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(10px);
+    }
+
+    .hud.is-hidden {
+      display: none;
+    }
+
+    .hud.skin-active {
+      border-color: rgba(246, 209, 139, 0.26);
+      box-shadow:
+        0 18px 36px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(246, 209, 139, 0.08),
+        0 0 28px rgba(246, 209, 139, 0.08);
+    }
+
+    .hud-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .hud-kicker {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: normal;
+    }
+
+    .hud-phase {
+      font-size: 20px;
+      line-height: 1.1;
+    }
+
+    .hud-subphase {
+      text-align: right;
+      color: var(--text-soft);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .energy-panel {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 245, 225, 0.08);
+      margin-bottom: 12px;
+    }
+
+    .energy-label-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .energy-value {
+      color: var(--text-main);
+      font-size: 14px;
+      letter-spacing: 0.08em;
+    }
+
+    .energy-bar {
+      position: relative;
+      height: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 245, 225, 0.08);
+    }
+
+    .energy-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #f6d18b, #fff1bf);
+      box-shadow: 0 0 18px rgba(246, 209, 139, 0.26);
+      transition: width 220ms ease, filter 180ms ease, opacity 180ms ease;
+      transform-origin: left center;
+    }
+
+    .energy-panel.low .energy-fill {
+      background: linear-gradient(90deg, #ff7d70, #ffb18f);
+      animation: pulseBar 900ms ease-in-out infinite;
+    }
+
+    .hud-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stat-card {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 245, 225, 0.08);
+      transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+    }
+
+    .stat-card.memory-glow {
+      border-color: rgba(255, 241, 193, 0.34);
+      box-shadow: 0 0 22px rgba(255, 225, 155, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .stat-card strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+      font-weight: normal;
+    }
+
+    .stat-card span {
+      font-size: 16px;
+      line-height: 1.3;
+    }
+
+    .stat-card.skin-on strong,
+    .hud.skin-active .hud-kicker {
+      color: var(--accent);
+    }
+
+    .overlay {
+      position: absolute;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%) translateY(12px);
+      width: min(92%, 760px);
+      padding: 18px 20px 16px;
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 35%),
+        var(--panel);
+      border: 1px solid var(--panel-border);
+      box-shadow:
+        0 18px 35px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      opacity: 0;
+      filter: blur(6px);
+      transition:
+        opacity 220ms ease,
+        transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+        filter 220ms ease;
+      pointer-events: none;
+    }
+
+    .overlay.is-visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      filter: blur(0);
+    }
+
+    .overlay-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .overlay h1,
+    .screen h2 {
+      margin: 0;
+      font-size: 12px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: normal;
+    }
+
+    .speaker-tag {
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 245, 225, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-soft);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .story-line {
+      height: 1px;
+      margin-bottom: 14px;
+      background: linear-gradient(90deg, rgba(246, 209, 139, 0.7), rgba(246, 209, 139, 0.04));
+    }
+
+    #dialogueText {
+      margin: 0;
+      font-size: clamp(18px, 2vw, 24px);
+      line-height: 1.55;
+      min-height: 3.2em;
+      white-space: pre-line;
+    }
+
+    .choices {
+      margin-top: 18px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .choice {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-height: 54px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 245, 225, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-soft);
+      animation: rise 220ms ease both;
+    }
+
+    .choice-key {
+      width: 30px;
+      height: 30px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 10px;
+      background: rgba(246, 209, 139, 0.16);
+      border: 1px solid rgba(246, 209, 139, 0.18);
+      color: var(--accent);
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    .hint {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 245, 225, 0.08);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255, 245, 225, 0.7);
+    }
+
+    .npc-prompt {
+      position: absolute;
+      top: 86px;
+      right: 18px;
+      max-width: 240px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(11, 13, 20, 0.62);
+      border: 1px solid rgba(255, 245, 225, 0.14);
+      color: var(--text-main);
+      font-size: 12px;
+      line-height: 1.45;
+      letter-spacing: 0.04em;
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .npc-prompt.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(7, 10, 16, 0.68);
+      pointer-events: none;
+    }
+
+    .screen.is-visible {
+      display: grid;
+    }
+
+    .screen.pause-screen {
+      background: rgba(5, 8, 14, 0.52);
+      pointer-events: auto;
+    }
+
+    .screen-card {
+      width: min(88%, 640px);
+      padding: 28px;
+      border-radius: 24px;
+      background: rgba(12, 15, 22, 0.9);
+      border: 1px solid rgba(255, 245, 225, 0.16);
+      text-align: center;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
+    }
+
+    .screen-card p {
+      margin: 14px 0 0;
+      font-size: 24px;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+
+    .screen-card .sub {
+      font-size: 15px;
+      color: var(--text-soft);
+    }
+
+    .menu-screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background:
+        linear-gradient(180deg, rgba(8, 11, 18, 0.52), rgba(8, 11, 18, 0.72)),
+        radial-gradient(circle at top, rgba(246, 209, 139, 0.16), transparent 30%);
+      pointer-events: auto;
+    }
+
+    .menu-screen.is-visible {
+      display: grid;
+    }
+
+    .menu-card {
+      width: min(92%, 760px);
+      padding: 28px;
+      border-radius: 26px;
+      background:
+        radial-gradient(circle at top, rgba(246, 209, 139, 0.08), transparent 38%),
+        rgba(12, 15, 22, 0.92);
+      border: 1px solid rgba(255, 245, 225, 0.14);
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.34);
+      pointer-events: auto;
+    }
+
+    .menu-card h2 {
+      margin: 0;
+      font-size: clamp(32px, 5vw, 52px);
+      line-height: 1;
+      color: var(--text-main);
+      font-weight: normal;
+    }
+
+    .menu-card .eyebrow {
+      display: inline-block;
+      margin-bottom: 14px;
+      color: var(--accent);
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+
+    .menu-card p {
+      margin: 14px 0 0;
+      color: var(--text-soft);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    .menu-lead {
+      max-width: 620px;
+      font-size: 17px;
+    }
+
+    .menu-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .menu-button {
+      appearance: none;
+      border: 1px solid rgba(255, 245, 225, 0.16);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      padding: 12px 18px;
+      border-radius: 14px;
+      font: inherit;
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease, opacity 160ms ease;
+    }
+
+    .menu-button:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(246, 209, 139, 0.3);
+    }
+
+    .menu-button.primary {
+      background: rgba(246, 209, 139, 0.16);
+      color: var(--accent);
+      border-color: rgba(246, 209, 139, 0.28);
+    }
+
+    .menu-button.is-hidden {
+      display: none;
+    }
+
+    .controls-list {
+      margin-top: 20px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .controls-item {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 245, 225, 0.08);
+      color: var(--text-soft);
+      font-size: 15px;
+    }
+
+    .phase-grid {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+    }
+
+    .phase-card {
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 245, 225, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .phase-card strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--accent);
+      font-weight: normal;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+
+    .phase-card p {
+      margin: 0 0 14px;
+      font-size: 14px;
+    }
+
+    .phase-card.locked {
+      opacity: 0.56;
+    }
+
+    .phase-card.locked .menu-button {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .footer {
+      margin-top: 10px;
+      text-align: center;
+      color: rgba(255, 245, 225, 0.55);
+      font-size: 13px;
+      letter-spacing: 0.02em;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes pulseBar {
+      0%, 100% {
+        opacity: 0.82;
+        filter: brightness(0.95);
+      }
+      50% {
+        opacity: 1;
+        filter: brightness(1.15);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="game-shell">
+      <canvas id="game" width="960" height="540"></canvas>
+
+      <div class="hud-layer">
+        <div class="hud" id="hud"></div>
+        <div class="npc-prompt" id="npcPrompt"></div>
+
+        <div class="overlay" id="dialogueBox">
+          <div class="overlay-top">
+            <h1>Skin Lendaria</h1>
+            <div class="speaker-tag" id="speakerTag">Voz Interior</div>
+          </div>
+          <div class="story-line"></div>
+          <p id="dialogueText"></p>
+          <div class="choices" id="choices"></div>
+          <div class="hint" id="hint"></div>
+        </div>
+
+        <div class="screen" id="stateScreen">
+          <div class="screen-card">
+            <h2 id="screenTitle"></h2>
+            <p id="screenText"></p>
+            <p class="sub" id="screenHint"></p>
+          </div>
+        </div>
+
+        <div class="screen pause-screen" id="pauseScreen">
+          <div class="screen-card">
+            <h2>Pausa</h2>
+            <p class="sub">Respire. O caminho espera.</p>
+            <div class="menu-actions" style="justify-content:center; margin-top:22px;">
+              <button class="menu-button primary" id="resumeButton" type="button">Continuar</button>
+              <button class="menu-button" id="restartPhaseButton" type="button">Reiniciar fase</button>
+              <button class="menu-button" id="toggleSoundButton" type="button">Som ON/OFF</button>
+              <button class="menu-button" id="backToMenuButton" type="button">Voltar ao menu</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="menu-screen is-visible" id="startScreen">
+          <div class="menu-card">
+            <span class="eyebrow">Protótipo narrativo</span>
+            <h2>Skin Lendária</h2>
+            <p class="menu-lead">Uma travessia simbólica em três fases sobre memória, ruptura e reconstrução. Uma história sobre continuar, mesmo quando a vida muda antes da gente entender o porquê.</p>
+
+            <div class="controls-list">
+              <div class="controls-item"><strong>Andar:</strong> A/D ou Setas</div>
+              <div class="controls-item"><strong>Pular:</strong> Espaço, W ou Seta para cima</div>
+              <div class="controls-item"><strong>Escolhas:</strong> teclas 1 e 2</div>
+              <div class="controls-item"><strong>Interagir:</strong> tecla E</div>
+              <div class="controls-item"><strong>Pausa:</strong> tecla ESC</div>
+              <div class="controls-item"><strong>Reiniciar fase:</strong> tecla R</div>
+              <div class="controls-item"><strong>Som:</strong> tecla M</div>
+            </div>
+
+            <div class="menu-actions">
+              <button class="menu-button" id="continueButton" type="button">Continuar</button>
+              <button class="menu-button primary" id="playButton" type="button">Jogar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="menu-screen" id="phaseSelectScreen">
+          <div class="menu-card">
+            <span class="eyebrow">Seleção de fases</span>
+            <h2>Escolha uma fase</h2>
+            <p>Fases desbloqueadas podem ser jogadas a qualquer momento. As próximas liberam conforme você avança.</p>
+            <div class="phase-grid" id="phaseGrid"></div>
+            <div class="menu-actions">
+              <button class="menu-button" id="backToStartButton" type="button">Voltar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="footer">Mover: A/D ou Setas | Pular: Espaço/W/Seta para cima | Escolhas: 1 e 2 | Interagir: E | Pausa: ESC | Reiniciar fase: R</p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function rectsOverlap(a, b) {
+      return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+    }
+
+    function createChoice(label, effect) {
+      return { label, effect };
+    }
+
+    function createTrigger(config) {
+      return {
+        once: true,
+        autoStart: false,
+        ...config,
+      };
+    }
+
+    function createPhase(config) {
+      return {
+        ...config,
+        acts: config.acts || [],
+        subPhases: config.subPhases || [],
+        platforms: config.platforms || [],
+        spikes: config.spikes || [],
+        pits: config.pits || [],
+        checkpoints: config.checkpoints || [],
+        memories: config.memories || [],
+        npcs: config.npcs || [],
+        triggers: config.triggers || [],
+      };
+    }
+
+    class AudioSystem {
+      constructor() {
+        this.context = null;
+        this.masterGain = null;
+        this.isMuted = false;
+        this.ambientPaused = false;
+        this.ambientTimer = 0;
+        this.ambientStep = 0;
+        this.currentTheme = "bright";
+        this.ambientIntensity = 1;
+        this.masterVolume = 1;
+      }
+
+      ensureReady() {
+        if (!this.context) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) return false;
+          this.context = new AudioContext();
+          this.masterGain = this.context.createGain();
+          this.masterGain.gain.value = 0.14;
+          this.masterGain.connect(this.context.destination);
+        }
+        if (this.context.state === "suspended") {
+          this.context.resume();
+        }
+        return true;
+      }
+
+      tone({ frequency, duration = 0.12, type = "sine", volume = 0.24, when = 0 }) {
+        if (!this.ensureReady() || this.isMuted) return;
+        const now = this.context.currentTime + when;
+        const osc = this.context.createOscillator();
+        const gain = this.context.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(frequency, now);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(volume, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(now);
+        osc.stop(now + duration + 0.02);
+      }
+
+      jump() { this.tone({ frequency: 430, duration: 0.12, type: "triangle", volume: 0.14 }); }
+      collect() { this.tone({ frequency: 660, duration: 0.1, type: "triangle", volume: 0.12 }); this.tone({ frequency: 860, duration: 0.12, type: "triangle", volume: 0.1, when: 0.03 }); }
+      hurt() { this.tone({ frequency: 180, duration: 0.18, type: "sawtooth", volume: 0.11 }); }
+      dialogue() { this.tone({ frequency: 320, duration: 0.16, type: "sine", volume: 0.08 }); }
+      choice() { this.tone({ frequency: 520, duration: 0.08, type: "triangle", volume: 0.12 }); this.tone({ frequency: 640, duration: 0.12, type: "triangle", volume: 0.1, when: 0.03 }); }
+      transition() { this.tone({ frequency: 260, duration: 0.22, type: "sine", volume: 0.08 }); this.tone({ frequency: 390, duration: 0.18, type: "sine", volume: 0.07, when: 0.06 }); }
+      checkpoint() { this.tone({ frequency: 560, duration: 0.12, type: "triangle", volume: 0.1 }); this.tone({ frequency: 740, duration: 0.18, type: "sine", volume: 0.08, when: 0.04 }); }
+      phaseEnd() { this.tone({ frequency: 420, duration: 0.16, type: "triangle", volume: 0.11 }); this.tone({ frequency: 560, duration: 0.16, type: "triangle", volume: 0.1, when: 0.05 }); this.tone({ frequency: 720, duration: 0.24, type: "sine", volume: 0.09, when: 0.1 }); }
+      gameOver() { this.tone({ frequency: 220, duration: 0.28, type: "sawtooth", volume: 0.12 }); this.tone({ frequency: 180, duration: 0.34, type: "triangle", volume: 0.1, when: 0.05 }); }
+      unlockSkin() { this.tone({ frequency: 520, duration: 0.18, type: "sine", volume: 0.12 }); this.tone({ frequency: 780, duration: 0.24, type: "triangle", volume: 0.1, when: 0.08 }); this.tone({ frequency: 1040, duration: 0.32, type: "sine", volume: 0.08, when: 0.16 }); }
+      clarity() { this.tone({ frequency: 720, duration: 0.12, type: "sine", volume: 0.08 }); this.tone({ frequency: 960, duration: 0.18, type: "sine", volume: 0.06, when: 0.05 }); }
+
+      setMuted(muted) {
+        this.isMuted = muted;
+      }
+
+      toggleMute() {
+        this.isMuted = !this.isMuted;
+        return this.isMuted;
+      }
+
+      setTheme(theme) {
+        this.currentTheme = theme;
+        this.ambientStep = 0;
+        this.ambientTimer = 0.1;
+      }
+
+      setAmbientIntensity(intensity = 1) {
+        this.ambientIntensity = clamp(intensity, 0.35, 1.35);
+      }
+
+      setMasterVolume(multiplier = 1) {
+        this.masterVolume = clamp(multiplier, 0, 1);
+      }
+
+      pauseAmbient(paused) {
+        this.ambientPaused = paused;
+      }
+
+      updateAmbient(deltaMs) {
+        if (!this.context || this.isMuted || this.ambientPaused) return;
+
+        this.ambientTimer -= deltaMs;
+        if (this.ambientTimer > 0) return;
+
+        const patterns = {
+          bright: {
+            notes: [262, 330, 392, 330],
+            interval: 780,
+            volume: 0.028,
+            type: "sine",
+          },
+          storm: {
+            notes: [196, 220, 174, 196],
+            interval: 920,
+            volume: 0.025,
+            type: "triangle",
+          },
+          city: {
+            notes: [247, 294, 330, 370],
+            interval: 720,
+            volume: 0.03,
+            type: "sine",
+          },
+          ending: {
+            notes: [294, 370, 440, 494],
+            interval: 980,
+            volume: 0.022,
+            type: "sine",
+          },
+        };
+
+        const pattern = patterns[this.currentTheme] || patterns.bright;
+        const note = pattern.notes[this.ambientStep % pattern.notes.length];
+        const ambientVolume = pattern.volume * this.ambientIntensity * this.masterVolume;
+        this.tone({ frequency: note, duration: 0.6, type: pattern.type, volume: ambientVolume });
+        this.tone({ frequency: note * 0.5, duration: 0.9, type: "sine", volume: ambientVolume * 0.55, when: 0.02 });
+        this.ambientStep += 1;
+        this.ambientTimer = pattern.interval;
+      }
+    }
+
+    class InputController {
+      constructor() {
+        this.keys = {};
+        this.justPressed = {};
+        window.addEventListener("keydown", (event) => {
+          const key = event.key.toLowerCase();
+          if (!this.keys[key]) {
+            this.justPressed[key] = true;
+          }
+          this.keys[key] = true;
+        });
+        window.addEventListener("keyup", (event) => {
+          this.keys[event.key.toLowerCase()] = false;
+        });
+      }
+
+      isPressed(...aliases) {
+        return aliases.some((key) => this.keys[key]);
+      }
+
+      wasPressed(...aliases) {
+        return aliases.some((key) => this.justPressed[key]);
+      }
+
+      endFrame() {
+        this.justPressed = {};
+      }
+    }
+
+    class DialogueSystem {
+      constructor({ boxEl, textEl, choicesEl, hintEl, speakerEl, audio, onChoiceApplied }) {
+        this.boxEl = boxEl;
+        this.textEl = textEl;
+        this.choicesEl = choicesEl;
+        this.hintEl = hintEl;
+        this.speakerEl = speakerEl;
+        this.audio = audio;
+        this.onChoiceApplied = onChoiceApplied;
+        this.current = null;
+        this.mode = "play";
+        this.typingSpeed = 32;
+      }
+
+      show(config) {
+        this.current = {
+          text: config.text,
+          speaker: config.speaker || "Voz Interior",
+          choices: config.choices || null,
+          autoCloseMs: config.autoCloseMs || null,
+          afterChoice: config.afterChoice || null,
+          onClose: config.onClose || null,
+          elapsed: 0,
+          typedChars: 0,
+        };
+        this.mode = this.current.choices ? "choice" : "dialogue";
+        this.audio.dialogue();
+        this.render();
+      }
+
+      close() {
+        const onClose = this.current?.onClose;
+        this.current = null;
+        this.mode = "play";
+        this.render();
+        if (onClose) onClose();
+      }
+
+      choose(index) {
+        if (!this.current?.choices) return;
+        const choice = this.current.choices[index];
+        if (!choice) return;
+        this.audio.choice();
+        if (choice.effect) {
+          choice.effect();
+          this.onChoiceApplied();
+        }
+        if (this.current.afterChoice) {
+          this.current.afterChoice();
+        } else {
+          this.close();
+        }
+      }
+
+      handleKey(event) {
+        if (this.mode === "choice") {
+          if (this.current && this.current.typedChars < this.current.text.length) {
+            this.current.typedChars = this.current.text.length;
+            this.render();
+            return;
+          }
+          if (event.key === "1") this.choose(0);
+          if (event.key === "2") this.choose(1);
+        } else if (this.mode === "dialogue" && !this.current?.autoCloseMs && (event.key === "Enter" || event.key === " ")) {
+          if (this.current && this.current.typedChars < this.current.text.length) {
+            this.current.typedChars = this.current.text.length;
+            this.render();
+            return;
+          }
+          this.close();
+        }
+      }
+
+      update(deltaMs) {
+        if (this.current && this.current.typedChars < this.current.text.length) {
+          this.current.typedChars = Math.min(this.current.text.length, this.current.typedChars + deltaMs / this.typingSpeed);
+          this.render();
+        }
+        if (!this.current?.autoCloseMs) return;
+        this.current.elapsed += deltaMs;
+        if (this.current.elapsed >= this.current.autoCloseMs) {
+          this.close();
+        }
+      }
+
+      render() {
+        this.boxEl.classList.toggle("is-visible", Boolean(this.current));
+        this.textEl.textContent = this.current ? this.current.text.slice(0, Math.floor(this.current.typedChars)) : "";
+        this.speakerEl.textContent = this.current ? this.current.speaker : "Voz Interior";
+        this.choicesEl.innerHTML = "";
+        this.hintEl.textContent = "";
+
+        if (!this.current) return;
+
+        if (this.current.choices && this.current.typedChars >= this.current.text.length) {
+          this.current.choices.forEach((choice, index) => {
+            const line = document.createElement("div");
+            line.className = "choice";
+            line.innerHTML = `<span class="choice-key">${index + 1}</span><span>${choice.label}</span>`;
+            this.choicesEl.appendChild(line);
+          });
+          this.hintEl.textContent = "Pressione 1 ou 2";
+          return;
+        }
+
+        this.hintEl.textContent = this.current.typedChars < this.current.text.length
+          ? "Pressione Enter ou Espaço para concluir"
+          : (this.current.autoCloseMs ? "Movimento liberado em instantes" : "Pressione Enter ou Espaço");
+      }
+
+      isBlocking() {
+        return this.mode !== "play";
+      }
+    }
+
+    class Player {
+      constructor() {
+        this.width = 24;
+        this.height = 44;
+        this.baseSpeed = 3.8;
+        this.speed = this.baseSpeed;
+        this.baseJumpForce = -12.4;
+        this.jumpForce = this.baseJumpForce;
+        this.groundAcceleration = 0.24;
+        this.groundDeceleration = 0.2;
+        this.airAcceleration = 0.11;
+        this.airDeceleration = 0.05;
+        this.coyoteTimeMs = 100;
+        this.jumpBufferMs = 120;
+        this.reset(80, 0);
+      }
+
+      reset(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.grounded = false;
+        this.facing = 1;
+        this.invulnerableTimer = 0;
+        this.coyoteTimer = 0;
+        this.jumpBufferTimer = 0;
+        this.moveIntent = 0;
+        this.damageFlashTimer = 0;
+        this.trail = [];
+      }
+
+      getBounds() {
+        return { x: this.x, y: this.y, width: this.width, height: this.height };
+      }
+
+      handleInput(input, canMove) {
+        if (!canMove) {
+          this.moveIntent = 0;
+          return false;
+        }
+
+        let move = 0;
+        if (input.isPressed("arrowleft", "a")) move -= 1;
+        if (input.isPressed("arrowright", "d")) move += 1;
+        this.moveIntent = move;
+        if (move !== 0) this.facing = move;
+
+        if (input.wasPressed(" ", "arrowup", "w")) {
+          this.jumpBufferTimer = this.jumpBufferMs;
+        }
+
+        return false;
+      }
+
+      update(deltaMs, gravity) {
+        const dt = clamp(deltaMs / 16.666, 0.75, 1.4);
+        const acceleration = this.grounded ? this.groundAcceleration : this.airAcceleration;
+        const deceleration = this.grounded ? this.groundDeceleration : this.airDeceleration;
+        const targetSpeed = this.moveIntent * this.speed;
+
+        if (this.moveIntent !== 0) {
+          this.vx += (targetSpeed - this.vx) * acceleration * dt;
+        } else {
+          this.vx += (0 - this.vx) * deceleration * dt;
+        }
+
+        this.jumpBufferTimer = Math.max(0, this.jumpBufferTimer - deltaMs);
+        this.coyoteTimer = Math.max(0, this.coyoteTimer - deltaMs);
+
+        if (this.jumpBufferTimer > 0 && this.coyoteTimer > 0) {
+          this.vy = this.jumpForce;
+          this.grounded = false;
+          this.coyoteTimer = 0;
+          this.jumpBufferTimer = 0;
+          this.y -= 1;
+          return this.finishUpdate(deltaMs, gravity, dt, true);
+        }
+
+        return this.finishUpdate(deltaMs, gravity, dt, false);
+      }
+
+      finishUpdate(deltaMs, gravity, dt, jumped) {
+        this.vy += gravity * dt;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.invulnerableTimer = Math.max(0, this.invulnerableTimer - deltaMs);
+        this.damageFlashTimer = Math.max(0, this.damageFlashTimer - deltaMs);
+        return jumped;
+      }
+
+      setGrounded(isGrounded) {
+        this.grounded = isGrounded;
+        if (isGrounded) {
+          this.coyoteTimer = this.coyoteTimeMs;
+        }
+      }
+
+      getFootPosition() {
+        return {
+          left: this.x + 5,
+          center: this.x + this.width / 2,
+          right: this.x + this.width - 5,
+          y: this.y + this.height,
+        };
+      }
+
+      draw(ctx, cameraX) {
+        const x = Math.floor(this.x - cameraX);
+        const y = Math.floor(this.y);
+        const blinking = this.invulnerableTimer > 0 && Math.floor(this.invulnerableTimer / 80) % 2 === 0;
+        if (blinking) return;
+        const walking = Math.abs(this.vx) > 0.6 && this.grounded;
+        const jumping = !this.grounded;
+        const legOffset = walking ? (Math.sin(performance.now() * 0.02) > 0 ? 1 : -1) : 0;
+
+        ctx.save();
+        ctx.translate(x + this.width / 2, y + this.height / 2);
+        ctx.scale(this.facing, 1);
+
+        if (this.damageFlashTimer > 0) {
+          ctx.shadowColor = "rgba(255, 120, 110, 0.6)";
+          ctx.shadowBlur = 10;
+        }
+
+        ctx.fillStyle = "#efd3c0";
+        ctx.fillRect(-8, -19, 16, 17);
+
+        ctx.fillStyle = "#d7bf59";
+        ctx.fillRect(-8, -25, 16, 5);
+        ctx.fillRect(-6, -28, 12, 3);
+        ctx.fillRect(-9, -22, 2, 6);
+        ctx.fillRect(7, -22, 2, 6);
+        if (this.damageFlashTimer <= 0 && jumping) {
+          ctx.fillStyle = "#ecd986";
+          ctx.fillRect(-5, -29, 10, 2);
+        }
+
+        ctx.strokeStyle = "#1d1f28";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(-4, -12, 3.2, 0, Math.PI * 2);
+        ctx.arc(4, -12, 3.2, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-1, -12);
+        ctx.lineTo(1, -12);
+        ctx.stroke();
+
+        ctx.fillStyle = "#c8d7ef";
+        ctx.fillRect(-5, -13, 2, 1);
+        ctx.fillRect(3, -13, 2, 1);
+
+        ctx.fillStyle = "#1a1d25";
+        ctx.fillRect(-9, -1, 18, 15);
+        ctx.fillRect(-13, -1, 4, 12);
+        ctx.fillRect(9, -1, 4, 12);
+        ctx.fillRect(-8, 14 + legOffset, 6, 13 - legOffset);
+        ctx.fillRect(2, 14 - legOffset, 6, 13 + legOffset);
+
+        ctx.fillStyle = "#3a4251";
+        ctx.fillRect(-13, 4, 4, 5);
+
+        ctx.fillStyle = "#2b1d1c";
+        ctx.fillRect(-5, -6, 10, 1);
+        ctx.fillRect(-4, -4, 8, 1);
+
+        ctx.fillStyle = "#101217";
+        ctx.fillRect(-6, 27 + legOffset, 4, 2);
+        ctx.fillRect(2, 27 - legOffset, 4, 2);
+        ctx.restore();
+      }
+    }
+
+    const PHASES = [
+      createPhase({
+        id: 1,
+        name: "Infancia",
+        theme: "bright",
+        width: 3000,
+        checkpoint: { x: 120, y: 356 },
+        acts: [
+          { name: "Ato 1 - Inicio", range: [0, 1000] },
+          { name: "Ato 2 - Desenvolvimento", range: [1000, 2000] },
+          { name: "Ato 3 - Ruptura", range: [2000, 3000] },
+        ],
+        subPhases: [
+          { id: "1A", name: "Ato 1", xRange: [0, 1000], ambientIntensity: 0.92, overlay: "rgba(255, 252, 244, 0.02)" },
+          { id: "1B", name: "Ato 2", xRange: [1000, 2000], ambientIntensity: 1.02, overlay: "rgba(250, 232, 194, 0.035)" },
+          { id: "1C", name: "Ato 3", xRange: [2000, 3000], ambientIntensity: 0.82, overlay: "rgba(50, 30, 36, 0.08)" },
+        ],
+        platforms: [
+          { x: 0, y: 400, width: 1000, height: 140, type: "ground" },
+          { x: 1160, y: 400, width: 250, height: 140, type: "ground" },
+          { x: 1505, y: 400, width: 310, height: 140, type: "ground" },
+          { x: 1885, y: 400, width: 165, height: 140, type: "ground" },
+          { x: 2060, y: 400, width: 210, height: 140, type: "ground" },
+          { x: 2355, y: 400, width: 185, height: 140, type: "ground" },
+          { x: 2625, y: 400, width: 155, height: 140, type: "ground" },
+          { x: 2860, y: 400, width: 140, height: 140, type: "ground" },
+          { x: 1260, y: 344, width: 58, height: 56, type: "crate" },
+          { x: 1710, y: 344, width: 58, height: 56, type: "crate" },
+          { x: 2205, y: 332, width: 96, height: 16, type: "platform" },
+          { x: 2485, y: 304, width: 88, height: 16, type: "platform" },
+          { x: 2725, y: 284, width: 88, height: 16, type: "platform" },
+        ],
+        pits: [
+          { x: 1000, width: 75 },
+          { x: 1410, width: 95 },
+          { x: 1815, width: 70 },
+          { x: 2270, width: 85 },
+          { x: 2540, width: 85 },
+          { x: 2780, width: 80 },
+        ],
+        checkpoints: [
+          { x: 1400, y: 356 },
+          { x: 2420, y: 288 },
+        ],
+        spikes: [],
+        memories: [
+          { x: 760, y: 356 },
+          { x: 1288, y: 300 },
+          { x: 1738, y: 300 },
+        ],
+        npcs: [
+          {
+            x: 340,
+            y: 396,
+            name: "Criança Interior",
+            role: "child",
+            dialogue: "Voce ainda lembra de mim?\nEu sou a parte sua que sentia antes de entender.",
+          },
+        ],
+        triggers: [
+          createTrigger({
+            x: 120,
+            width: 60,
+            autoStart: true,
+            dialogue: { text: "Antes de saber explicar a vida, eu ja sentia o peso dela." },
+          }),
+          createTrigger({
+            x: 1120,
+            width: 70,
+            dialogue: { text: "A inocencia ainda estava aqui, mas o chao comecou a falhar." },
+          }),
+          createTrigger({
+            x: 2190,
+            width: 70,
+            onEnter: (game) => {
+              game.transitionOverlay = 0.22;
+              game.centerMessage = {
+                lines: ["O ceu nao escureceu de uma vez.", "Mas eu senti quando mudou."],
+                timer: 1900,
+                position: "center",
+                color: "#f4e7d7",
+              };
+            },
+          }),
+          createTrigger({
+            x: 2890,
+            width: 70,
+            dialogue: {
+              text: "E um dia... tudo mudou.",
+              choices: [
+                createChoice("Seguir andando", (game) => { game.stats.resiliencia += 1; }),
+                createChoice("Parar", (game) => {
+                  game.stats.energia -= 2;
+                  game.applyChoiceModifier({ speedScale: 0.92, jumpBonus: 0.3, duration: 5000, darkness: 0.08 });
+                }),
+              ],
+              afterChoice: (game) => {
+                game.dialogue.show({
+                  text: "Algo em mim precisou aprender a continuar.",
+                  autoCloseMs: 1600,
+                  onClose: () => game.advancePhase(),
+                });
+              },
+            },
+          }),
+        ],
+      }),
+      createPhase({
+        id: 2,
+        name: "Ruptura",
+        theme: "storm",
+        width: 3000,
+        checkpoint: { x: 120, y: 356 },
+        acts: [
+          { name: "Ato 1 - Confusao", range: [0, 1000] },
+          { name: "Ato 2 - Silencio", range: [1000, 2000] },
+          { name: "Ato 3 - Resistencia", range: [2000, 3000] },
+        ],
+        subPhases: [
+          { id: "2A", name: "Ato 1", xRange: [0, 1000], ambientIntensity: 0.88, overlay: "rgba(18, 24, 34, 0.03)" },
+          { id: "2B", name: "Ato 2", xRange: [1000, 2000], ambientIntensity: 0.56, overlay: "rgba(12, 14, 20, 0.1)" },
+          { id: "2C", name: "Ato 3", xRange: [2000, 3000], ambientIntensity: 1.04, overlay: "rgba(24, 28, 34, 0.045)" },
+        ],
+        platforms: [
+          { x: 0, y: 400, width: 260, height: 140, type: "ground" },
+          { x: 340, y: 376, width: 150, height: 18, type: "platform" },
+          { x: 560, y: 344, width: 160, height: 18, type: "platform" },
+          { x: 800, y: 400, width: 200, height: 140, type: "ground" },
+          { x: 1000, y: 400, width: 1000, height: 140, type: "ground" },
+          { x: 2000, y: 400, width: 240, height: 140, type: "ground" },
+          { x: 2320, y: 400, width: 230, height: 140, type: "ground" },
+          { x: 2635, y: 400, width: 190, height: 140, type: "ground" },
+          { x: 2895, y: 400, width: 105, height: 140, type: "ground" },
+          { x: 2150, y: 328, width: 96, height: 16, type: "platform" },
+          { x: 2475, y: 304, width: 96, height: 16, type: "platform" },
+        ],
+        pits: [
+          { x: 260, width: 80 },
+          { x: 490, width: 70 },
+          { x: 2240, width: 80 },
+          { x: 2550, width: 85 },
+          { x: 2825, width: 70 },
+        ],
+        checkpoints: [
+          { x: 2100, y: 356 },
+          { x: 2495, y: 260 },
+        ],
+        spikes: [
+          { x: 870, y: 380, width: 56, height: 20 },
+          { x: 2070, y: 380, width: 70, height: 20 },
+          { x: 2390, y: 380, width: 70, height: 20 },
+          { x: 2685, y: 380, width: 70, height: 20 },
+        ],
+        memories: [
+          { x: 640, y: 304 },
+          { x: 1710, y: 356 },
+          { x: 2198, y: 290 },
+          { x: 2518, y: 266 },
+        ],
+        npcs: [
+          {
+            x: 2160,
+            y: 396,
+            name: "Pai",
+            role: "father",
+            dialogue: "Eu tambem nao tinha todas as respostas.\nMas continuei tentando ser abrigo.",
+            choices: [
+              {
+                label: "Receber abrigo",
+                effect: (game) => {
+                  game.stats.energia += 2;
+                  game.stats.resiliencia += 1;
+                },
+              },
+              {
+                label: "Guardar silencio",
+                effect: (game) => {
+                  game.stats.clareza += 1;
+                  game.stats.energia -= 1;
+                },
+              },
+            ],
+          },
+        ],
+        triggers: [
+          createTrigger({
+            x: 120,
+            width: 60,
+            autoStart: true,
+            dialogue: { text: "Algumas dores chegam antes da gente aprender a se defender." },
+          }),
+          createTrigger({
+            x: 700,
+            width: 60,
+            dialogue: { text: "O chao ficou irregular. Eu tambem." },
+          }),
+          createTrigger({
+            x: 1420,
+            width: 70,
+            onEnter: (game) => game.startSilenceMoment(),
+          }),
+          createTrigger({
+            x: 2090,
+            width: 60,
+            dialogue: { text: "Quando o silencio passou, sobrou o peso de continuar." },
+          }),
+          createTrigger({
+            x: 2910,
+            width: 70,
+            dialogue: {
+              text: "As marcas nao sumiram. So mudaram a forma de falar comigo.",
+              choices: [
+                createChoice("Guardar a dor", (game) => {
+                  game.stats.resiliencia += 1;
+                  game.stats.clareza -= 1;
+                  game.applyChoiceModifier({ speedScale: 0.9, jumpBonus: -0.35, duration: 7000, darkness: 0.12 });
+                }),
+                createChoice("Transformar em caminho", (game) => {
+                  game.stats.resiliencia += 2;
+                  game.stats.clareza += 1;
+                  game.applyChoiceModifier({ speedScale: 1.08, jumpBonus: 0.45, duration: 7000, clarity: true, courage: true });
+                }),
+              ],
+              afterChoice: (game) => {
+                game.dialogue.show({
+                  text: "Eu nao sai inteiro. Mas sai.",
+                  autoCloseMs: 1700,
+                  onClose: () => game.advancePhase(),
+                });
+              },
+            },
+          }),
+        ],
+      }),
+      createPhase({
+        id: 3,
+        name: "Novo Mapa",
+        theme: "city",
+        width: 3000,
+        checkpoint: { x: 120, y: 356 },
+        acts: [
+          { name: "Ato 1 - Mudanca", range: [0, 1000] },
+          { name: "Ato 2 - Confronto", range: [1000, 2000] },
+          { name: "Ato 3 - Direcao", range: [2000, 3000] },
+        ],
+        subPhases: [
+          { id: "3A", name: "Ato 1", xRange: [0, 1000], ambientIntensity: 0.98, overlay: "rgba(255, 241, 228, 0.025)" },
+          { id: "3B", name: "Ato 2", xRange: [1000, 2000], ambientIntensity: 1.08, overlay: "rgba(35, 28, 34, 0.05)" },
+          { id: "3C", name: "Ato 3", xRange: [2000, 3000], ambientIntensity: 1.12, overlay: "rgba(255, 233, 194, 0.03)" },
+        ],
+        platforms: [
+          { x: 0, y: 400, width: 240, height: 140, type: "ground" },
+          { x: 320, y: 360, width: 120, height: 18, type: "platform" },
+          { x: 520, y: 320, width: 120, height: 18, type: "platform" },
+          { x: 720, y: 280, width: 130, height: 18, type: "platform" },
+          { x: 930, y: 400, width: 110, height: 140, type: "ground" },
+          { x: 1040, y: 400, width: 230, height: 140, type: "ground" },
+          { x: 1360, y: 400, width: 210, height: 140, type: "ground" },
+          { x: 1655, y: 400, width: 170, height: 140, type: "ground" },
+          { x: 1910, y: 400, width: 130, height: 140, type: "ground" },
+          { x: 2000, y: 400, width: 1000, height: 140, type: "ground" },
+          { x: 1190, y: 332, width: 94, height: 16, type: "platform" },
+          { x: 1490, y: 300, width: 96, height: 16, type: "platform" },
+        ],
+        pits: [
+          { x: 240, width: 80 },
+          { x: 440, width: 80 },
+          { x: 640, width: 80 },
+          { x: 1270, width: 90 },
+          { x: 1570, width: 85 },
+          { x: 1825, width: 85 },
+        ],
+        checkpoints: [
+          { x: 960, y: 356 },
+          { x: 1500, y: 260 },
+          { x: 2080, y: 356 },
+        ],
+        spikes: [
+          { x: 1100, y: 380, width: 70, height: 20 },
+          { x: 1415, y: 380, width: 70, height: 20 },
+          { x: 1710, y: 380, width: 70, height: 20 },
+        ],
+        memories: [
+          { x: 780, y: 240 },
+          { x: 1238, y: 286 },
+          { x: 1538, y: 254 },
+          { x: 2320, y: 356 },
+          { x: 2660, y: 356 },
+        ],
+        npcs: [
+          {
+            x: 1680,
+            y: 396,
+            name: "Sombra",
+            role: "shadow",
+            dialogue: "Voce tem certeza que consegue?\nOu so esta fingindo ser forte?",
+            choices: [
+              {
+                label: "Encarar a sombra",
+                effect: (game) => {
+                  game.stats.resiliencia += 2;
+                },
+              },
+              {
+                label: "Fugir da sombra",
+                effect: (game) => {
+                  game.stats.energia -= 2;
+                },
+              },
+            ],
+          },
+        ],
+        triggers: [
+          createTrigger({
+            x: 120,
+            width: 60,
+            autoStart: true,
+            dialogue: { text: "Mudar de lugar nao muda quem voce e. Mas revela o que ainda precisa nascer." },
+          }),
+          createTrigger({
+            x: 960,
+            width: 60,
+            dialogue: { text: "O ritmo acelerou. Eu tambem precisei subir." },
+          }),
+          createTrigger({
+            x: 1950,
+            width: 70,
+            dialogue: { text: "Depois do confronto, restou um caminho sem ruido." },
+          }),
+          createTrigger({
+            x: 2860,
+            width: 70,
+            dialogue: {
+              text: "O novo comeco nao apaga o passado. Ele pede coragem para construir em cima dele.",
+              choices: [
+                createChoice("Continuar construindo", (game) => {
+                  game.stats.clareza += 2;
+                  game.stats.resiliencia += 1;
+                  game.applyChoiceModifier({ speedScale: 1.1, jumpBonus: 0.5, duration: 8000, clarity: true, courage: true });
+                }),
+                createChoice("Voltar para o conhecido", (game) => {
+                  game.stats.energia += 1;
+                  game.stats.clareza -= 1;
+                  game.applyChoiceModifier({ speedScale: 0.95, jumpBonus: -0.2, duration: 8000, darkness: 0.08 });
+                }),
+              ],
+              afterChoice: (game) => {
+                game.dialogue.show({
+                  text: "Eu nao estava fugindo do passado. Eu estava procurando o meu caminho.",
+                  autoCloseMs: 1800,
+                  onClose: () => game.finishGame(),
+                });
+              },
+            },
+          }),
+        ],
+      }),
+    ];
+
+    class Game {
+      constructor() {
+        this.storageKey = "skin-lendaria-v2-progress";
+        this.gravity = 0.62;
+        this.cameraX = 0;
+        this.fade = 0;
+        this.fadeTarget = 0;
+        this.damageOverlay = 0;
+        this.lastTime = 0;
+        this.state = "start";
+        this.worldWidth = 2200;
+        this.phaseIndex = 0;
+        this.highestUnlockedPhase = 1;
+        this.phase = null;
+        this.currentSubPhase = null;
+        this.checkpoint = { x: 120, y: 360 };
+        this.platformVelocity = { x: 0, y: 0 };
+        this.screenShake = { strength: 0, x: 0, y: 0 };
+        this.floatingTexts = [];
+        this.particles = [];
+        this.transitionOverlay = 0;
+        this.subPhaseTransition = 0;
+        this.subPhaseLabel = null;
+        this.centerMessage = null;
+        this.endingScene = null;
+        this.memoryPhrases = [
+          "Eu era pequeno demais para entender, mas grande o bastante para sentir.",
+          "Algumas ausências ensinam antes mesmo da vida explicar.",
+          "Nem toda dor faz barulho. Algumas crescem em silêncio.",
+          "Eu perdi partes de mim antes de saber quem eu era.",
+          "Teve dia em que continuar já foi vencer.",
+          "A infância acabou cedo, mas a sensibilidade ficou.",
+          "Eu aprendi que força nem sempre parece força.",
+          "Tem feridas que não somem. Elas viram direção.",
+          "O que tentaram chamar de fraqueza virou minha armadura.",
+          "Minha história não me quebrou. Ela me revelou.",
+          "Eu não escolhi a dor, mas escolhi o que fazer com ela.",
+          "Existe um tipo de luz que só nasce depois do escuro.",
+        ];
+        this.memoryPhraseIndex = 0;
+        this.memoryMessage = null;
+        this.specialMemoryMilestones = new Set();
+        this.tempModifier = { timer: 0, speedScale: 1, jumpBonus: 0 };
+        this.skinLegendaryActive = false;
+        this.maxEnergy = 15;
+        this.displayedEnergy = this.maxEnergy;
+        this.energyPulse = 0;
+        this.memoryGlowTimer = 0;
+        this.silenceMomentUsed = false;
+        this.silenceMomentTimer = 0;
+        this.controlLockTimer = 0;
+        this.timeScale = 1;
+        this.audio = new AudioSystem();
+        this.input = new InputController();
+        this.player = new Player();
+        this.hudEl = document.getElementById("hud");
+        this.screenEl = document.getElementById("stateScreen");
+        this.screenTitleEl = document.getElementById("screenTitle");
+        this.screenTextEl = document.getElementById("screenText");
+        this.screenHintEl = document.getElementById("screenHint");
+        this.pauseScreenEl = document.getElementById("pauseScreen");
+        this.startScreenEl = document.getElementById("startScreen");
+        this.phaseSelectScreenEl = document.getElementById("phaseSelectScreen");
+        this.phaseGridEl = document.getElementById("phaseGrid");
+        this.playButtonEl = document.getElementById("playButton");
+        this.continueButtonEl = document.getElementById("continueButton");
+        this.backToStartButtonEl = document.getElementById("backToStartButton");
+        this.resumeButtonEl = document.getElementById("resumeButton");
+        this.restartPhaseButtonEl = document.getElementById("restartPhaseButton");
+        this.toggleSoundButtonEl = document.getElementById("toggleSoundButton");
+        this.backToMenuButtonEl = document.getElementById("backToMenuButton");
+        this.npcPromptEl = document.getElementById("npcPrompt");
+        this.activeNpc = null;
+        this.stats = {
+          resiliencia: 0,
+          energia: this.maxEnergy,
+          clareza: 0,
+          memoria: 0,
+        };
+
+        this.dialogue = new DialogueSystem({
+          boxEl: document.getElementById("dialogueBox"),
+          textEl: document.getElementById("dialogueText"),
+          choicesEl: document.getElementById("choices"),
+          hintEl: document.getElementById("hint"),
+          speakerEl: document.getElementById("speakerTag"),
+          audio: this.audio,
+          onChoiceApplied: () => {
+            this.updateSkinLegendaryState();
+            this.refreshHud();
+            this.saveProgress();
+          },
+        });
+
+        this.playButtonEl.addEventListener("click", () => {
+          this.audio.ensureReady();
+          this.showPhaseSelect();
+        });
+        this.continueButtonEl.addEventListener("click", () => {
+          this.audio.ensureReady();
+          this.continueSavedProgress();
+        });
+        this.backToStartButtonEl.addEventListener("click", () => this.showStartScreen());
+        this.resumeButtonEl.addEventListener("click", () => this.resumePause());
+        this.restartPhaseButtonEl.addEventListener("click", () => {
+          this.hidePauseScreen();
+          this.loadPhase(this.phaseIndex, true);
+        });
+        this.toggleSoundButtonEl.addEventListener("click", () => {
+          this.audio.toggleMute();
+          this.refreshHud();
+        });
+        this.backToMenuButtonEl.addEventListener("click", () => {
+          this.hidePauseScreen();
+          this.showPhaseSelect();
+        });
+        window.addEventListener("keydown", (event) => this.handleKey(event));
+        this.loadSavedProgress();
+        this.loadPhase(0, true, false);
+        this.showStartScreen();
+      }
+
+      loadSavedProgress() {
+        try {
+          const raw = localStorage.getItem(this.storageKey);
+          if (!raw) return;
+          const saved = JSON.parse(raw);
+          this.highestUnlockedPhase = saved.highestUnlockedPhase || 1;
+          this.stats = saved.stats || this.stats;
+          this.stats.energia = clamp(this.stats.energia ?? this.maxEnergy, 0, this.maxEnergy);
+          this.skinLegendaryActive = Boolean(saved.skinLegendaryActive);
+          this.displayedEnergy = this.stats.energia;
+        } catch (_) {
+          // ignore bad save data
+        }
+      }
+
+      saveProgress() {
+        try {
+          localStorage.setItem(this.storageKey, JSON.stringify({
+            highestUnlockedPhase: this.highestUnlockedPhase,
+            stats: this.stats,
+            skinLegendaryActive: this.skinLegendaryActive,
+          }));
+        } catch (_) {
+          // ignore storage failures
+        }
+      }
+
+      hasSavedProgress() {
+        return this.highestUnlockedPhase > 1 || this.stats.memoria > 0 || this.stats.resiliencia > 0 || this.skinLegendaryActive;
+      }
+
+      continueSavedProgress() {
+        const index = clamp(this.highestUnlockedPhase - 1, 0, PHASES.length - 1);
+        this.loadPhase(index, true, true);
+      }
+
+      handleKey(event) {
+        this.audio.ensureReady();
+        const key = event.key.toLowerCase();
+
+        if (this.state === "start" || this.state === "phase-select") {
+          if (this.state === "start" && event.key === "Enter") {
+            this.showPhaseSelect();
+          }
+          if (key === "m") {
+            this.audio.toggleMute();
+            this.refreshHud();
+          }
+          return;
+        }
+
+        if (key === "escape") {
+          if (this.state === "pause") {
+            this.resumePause();
+            return;
+          }
+          if (this.state === "play" && !this.dialogue.isBlocking()) {
+            this.showPauseScreen();
+            return;
+          }
+        }
+
+        if (key === "m") {
+          this.audio.toggleMute();
+          this.refreshHud();
+          return;
+        }
+
+        if (this.state === "pause") {
+          return;
+        }
+
+        if (key === "e" && this.state === "play" && !this.dialogue.isBlocking()) {
+          this.tryInteractWithNpc();
+          return;
+        }
+
+        if (key === "r") {
+          if (this.state === "gameover") {
+            this.showPhaseSelect();
+          } else if (this.state === "play" || this.state === "pause") {
+            this.hidePauseScreen();
+            this.loadPhase(this.phaseIndex, true);
+          }
+          return;
+        }
+
+        if (this.state === "gameover" && event.key === "Enter") {
+          this.showPhaseSelect();
+          return;
+        }
+
+        if (this.state === "complete" && event.key === "Enter") {
+          this.showPhaseSelect();
+          return;
+        }
+
+        this.dialogue.handleKey(event);
+      }
+
+      createRuntimePhase(definition) {
+        return {
+          ...definition,
+          platforms: definition.platforms.map((platform) => ({
+            ...platform,
+            x: platform.x,
+            y: platform.y,
+            previousX: platform.x,
+            previousY: platform.y,
+          })),
+          spikes: definition.spikes.map((spike) => ({ ...spike })),
+          pits: definition.pits.map((pit) => ({
+            ...pit,
+            x: pit.x + 8,
+            width: Math.max(20, pit.width - 16),
+            y: (pit.y || 400) + 12,
+          })),
+          checkpoints: definition.checkpoints.map((checkpoint) => ({
+            ...checkpoint,
+            active: false,
+          })),
+          memories: definition.memories.map((memory) => ({ ...memory, collected: false, baseY: memory.y })),
+          npcs: definition.npcs.map((npc) => ({
+            ...npc,
+            met: false,
+          })),
+          triggers: definition.triggers.map((trigger) => ({ ...trigger, used: false })),
+        };
+      }
+
+      loadPhase(index, keepStats = true, startPlaying = true) {
+        this.phaseIndex = index;
+        this.phase = this.createRuntimePhase(PHASES[index]);
+        this.worldWidth = this.phase.width;
+        this.checkpoint = { ...this.phase.checkpoint };
+        this.player.reset(this.checkpoint.x, this.checkpoint.y);
+        this.state = startPlaying ? "play" : this.state;
+        this.cameraX = 0;
+        this.fadeTarget = 0;
+        this.fade = 0;
+        this.damageOverlay = 0;
+        this.transitionOverlay = startPlaying ? 0.28 : 0;
+        this.subPhaseTransition = 0;
+        this.subPhaseLabel = null;
+        this.screenShake = { strength: 0, x: 0, y: 0 };
+        this.floatingTexts = [];
+        this.particles = [];
+        this.memoryMessage = null;
+        this.endingScene = null;
+        this.specialMemoryMilestones.clear();
+        this.tempModifier = { timer: 0, speedScale: 1, jumpBonus: 0 };
+        this.silenceMomentUsed = false;
+        this.silenceMomentTimer = 0;
+        this.controlLockTimer = 0;
+        this.timeScale = 1;
+        this.displayedEnergy = keepStats ? clamp(this.stats.energia, 0, this.maxEnergy) : this.maxEnergy;
+        this.memoryGlowTimer = 0;
+        this.audio.setTheme(this.phase.theme);
+        this.audio.pauseAmbient(false);
+        this.audio.setMasterVolume(1);
+        this.currentSubPhase = this.getSubPhaseForX(this.player.x + this.player.width * 0.5);
+        this.audio.setAmbientIntensity(this.currentSubPhase?.ambientIntensity || 1);
+        this.hideScreen();
+        this.hidePauseScreen();
+        if (!keepStats) {
+          this.stats = { resiliencia: 0, energia: this.maxEnergy, clareza: 0, memoria: 0 };
+        }
+        this.updateSkinLegendaryState();
+        this.refreshHud();
+        if (startPlaying) {
+          this.hideMenus();
+          this.autoStartTriggers();
+        }
+      }
+
+      getSubPhaseForX(x) {
+        if (!this.phase?.subPhases?.length) return null;
+        return this.phase.subPhases.find((subPhase) => x >= subPhase.xRange[0] && x < subPhase.xRange[1]) || this.phase.subPhases[this.phase.subPhases.length - 1];
+      }
+
+      updateSubPhase() {
+        const nextSubPhase = this.getSubPhaseForX(this.player.x + this.player.width * 0.5);
+        if (!nextSubPhase) return;
+        if (!this.currentSubPhase || this.currentSubPhase.id !== nextSubPhase.id) {
+          this.currentSubPhase = nextSubPhase;
+          this.subPhaseTransition = 0.2;
+          this.subPhaseLabel = {
+            text: nextSubPhase.name,
+            timer: 1700,
+          };
+          this.audio.setAmbientIntensity(nextSubPhase.ambientIntensity || 1);
+          this.audio.transition();
+          this.refreshHud();
+        }
+      }
+
+      autoStartTriggers() {
+        this.phase.triggers.forEach((trigger) => {
+          if (trigger.autoStart && !trigger.used) {
+            trigger.used = true;
+            this.openDialogue(trigger.dialogue);
+          }
+        });
+      }
+
+      restartGame() {
+        this.highestUnlockedPhase = 1;
+        this.loadPhase(0, false, false);
+        this.saveProgress();
+        this.showStartScreen();
+      }
+
+      showPauseScreen() {
+        this.state = "pause";
+        this.pauseScreenEl.classList.add("is-visible");
+      }
+
+      hidePauseScreen() {
+        this.pauseScreenEl.classList.remove("is-visible");
+      }
+
+      resumePause() {
+        if (this.state !== "pause") return;
+        this.hidePauseScreen();
+        this.state = "play";
+      }
+
+      advancePhase() {
+        if (this.phaseIndex < PHASES.length - 1) {
+          this.audio.phaseEnd();
+          this.unlockPhase(this.phaseIndex + 2);
+          this.loadPhase(this.phaseIndex + 1, true);
+        }
+      }
+
+      finishGame() {
+        this.unlockPhase(PHASES.length);
+        this.dialogue.close();
+        this.startEndingScene();
+      }
+
+      getEndingSequence() {
+        const baseLines = [
+          "Eu achei que precisava entender tudo…",
+          "…até perceber que só precisava continuar.",
+          "Nem toda dor passa.",
+          "Algumas… se transformam em direção.",
+          "A minha não me quebrou.",
+          "Ela me construiu.",
+        ];
+        const variantLines = this.skinLegendaryActive
+          ? [
+              "Skin Lendária desbloqueada.",
+              "Não por nunca cair…",
+              "mas por nunca parar.",
+            ]
+          : [
+              "Você chegou até aqui.",
+              "E isso já diz mais do que qualquer resposta.",
+            ];
+
+        return [
+          ...baseLines.map((text) => ({ text, duration: 2200, silence: false })),
+          { text: "", duration: 950, silence: true },
+          ...variantLines.map((text, index) => ({
+            text,
+            duration: index === variantLines.length - 1 ? 2800 : 2200,
+            silence: false,
+          })),
+        ];
+      }
+
+      startEndingScene() {
+        this.state = "ending";
+        this.timeScale = 0.82;
+        this.controlLockTimer = 2600;
+        this.audio.setTheme("ending");
+        this.audio.setAmbientIntensity(0.72);
+        this.audio.setMasterVolume(0.8);
+        this.audio.phaseEnd();
+        this.transitionOverlay = 0.32;
+        this.centerMessage = null;
+        this.memoryMessage = null;
+        this.subPhaseLabel = null;
+        this.endingScene = {
+          lines: this.getEndingSequence(),
+          index: -1,
+          timer: 0,
+          fadeOut: 0,
+          done: false,
+          walkSpeed: 1.2,
+          particleTimer: 0,
+        };
+        this.advanceEndingLine();
+        this.saveProgress();
+      }
+
+      advanceEndingLine() {
+        if (!this.endingScene) return;
+        this.endingScene.index += 1;
+        const currentLine = this.endingScene.lines[this.endingScene.index];
+        if (!currentLine) {
+          this.endingScene.done = true;
+          return;
+        }
+        this.endingScene.timer = currentLine.duration;
+        if (currentLine.silence) {
+          this.centerMessage = null;
+          this.audio.pauseAmbient(true);
+          return;
+        }
+
+        if (this.endingScene.index > 0) {
+          this.audio.pauseAmbient(false);
+        }
+        this.centerMessage = {
+          lines: [currentLine.text],
+          timer: currentLine.duration,
+          position: "center",
+          color: this.skinLegendaryActive ? "#fff5db" : "#f7eee3",
+        };
+      }
+
+      refreshHud() {
+        const skinLabel = this.skinLegendaryActive ? "Ativa" : "Inativa";
+        const phaseMemoryCount = this.phase ? this.phase.memories.filter((memory) => memory.collected).length : 0;
+        const phaseMemoryTotal = this.phase ? this.phase.memories.length : 0;
+        const phaseNpcCount = this.phase ? this.phase.npcs.filter((npc) => npc.met).length : 0;
+        const phaseLabel = this.phase ? `${this.phase.id} - ${this.phase.name}` : "-";
+        const subPhaseLabel = this.currentSubPhase ? `${this.currentSubPhase.id} / ${this.currentSubPhase.name}` : "-";
+        const energyRatio = clamp(this.displayedEnergy / this.maxEnergy, 0, 1);
+        const lowEnergyClass = this.stats.energia <= 4 ? "low" : "";
+        const memoryGlowClass = this.memoryGlowTimer > 0 ? "memory-glow" : "";
+        this.hudEl.classList.toggle("skin-active", this.skinLegendaryActive);
+        if (this.toggleSoundButtonEl) {
+          this.toggleSoundButtonEl.textContent = this.audio.isMuted ? "Som OFF" : "Som ON";
+        }
+        this.hudEl.innerHTML = `
+          <div class="hud-header">
+            <div>
+              <span class="hud-kicker">Skin Lendária</span>
+              <div class="hud-phase">${phaseLabel}</div>
+            </div>
+            <div class="hud-subphase">
+              <div>${subPhaseLabel}</div>
+              <div>${this.audio.isMuted ? "Som OFF" : "Som ON"}</div>
+            </div>
+          </div>
+          <div class="energy-panel ${lowEnergyClass}">
+            <div class="energy-label-row">
+              <span>Energia</span>
+              <span class="energy-value">${this.stats.energia}/${this.maxEnergy}</span>
+            </div>
+            <div class="energy-bar">
+              <div class="energy-fill" style="width:${(energyRatio * 100).toFixed(1)}%"></div>
+            </div>
+          </div>
+          <div class="hud-grid">
+            <div class="stat-card"><strong>Resiliência</strong><span>${this.stats.resiliencia}</span></div>
+            <div class="stat-card"><strong>Clareza</strong><span>${this.stats.clareza}</span></div>
+            <div class="stat-card ${memoryGlowClass}"><strong>Memórias</strong><span>${phaseMemoryCount}/${phaseMemoryTotal}</span></div>
+            <div class="stat-card"><strong>Memória total</strong><span>${this.stats.memoria}</span></div>
+            <div class="stat-card"><strong>NPCs</strong><span>${phaseNpcCount}</span></div>
+            <div class="stat-card ${this.skinLegendaryActive ? "skin-on" : ""}"><strong>Skin Lendária</strong><span>${skinLabel}</span></div>
+          </div>
+        `;
+      }
+
+      updateSkinLegendaryState() {
+        const isActive = this.stats.resiliencia >= 3 && this.stats.memoria >= 5;
+        if (isActive !== this.skinLegendaryActive) {
+          this.skinLegendaryActive = isActive;
+          if (isActive) {
+            this.spawnParticles(this.player.x + this.player.width / 2, this.player.y + 12, "#ffe7a5", 16);
+            this.addFloatingText("Skin Lendária ativa", this.player.x + this.player.width / 2, this.player.y - 18, "#ffe7a5");
+            this.audio.unlockSkin();
+            this.centerMessage = {
+              lines: [
+                "Skin Lendária desbloqueada.",
+                "Você não virou forte porque não sofreu.",
+                "Você virou forte porque continuou.",
+              ],
+              timer: 3600,
+              position: "center",
+              color: "#fff3cf",
+            };
+          }
+          this.saveProgress();
+          this.refreshHud();
+        }
+      }
+
+      applyChoiceModifier({ speedScale = 1, jumpBonus = 0, energyDelta = 0, duration = 0, darkness = 0, clarity = false, courage = false } = {}) {
+        this.tempModifier = {
+          timer: duration,
+          speedScale,
+          jumpBonus,
+          darkness,
+          courage,
+        };
+        if (energyDelta !== 0) {
+          this.stats.energia += energyDelta;
+        }
+        if (clarity) {
+          this.audio.clarity();
+          this.spawnParticles(this.player.x + this.player.width / 2, this.player.y + 8, "#ffffff", 12);
+        }
+        this.refreshHud();
+        this.saveProgress();
+      }
+
+      startSilenceMoment() {
+        if (this.silenceMomentUsed) return;
+        this.silenceMomentUsed = true;
+        this.silenceMomentTimer = 3000;
+        this.timeScale = 0.68;
+        this.audio.pauseAmbient(true);
+        this.controlLockTimer = 2400;
+        this.centerMessage = {
+          lines: [
+            "Naquele dia, o mundo continuou girando.",
+            "Mas dentro de mim, tudo parou.",
+          ],
+          timer: 2600,
+          position: "center",
+          color: "#f1e7d8",
+        };
+      }
+
+      showScreen(title, text, hint) {
+        this.screenTitleEl.textContent = title;
+        this.screenTextEl.textContent = text;
+        this.screenHintEl.textContent = hint;
+        this.screenEl.classList.add("is-visible");
+      }
+
+      hideScreen() {
+        this.screenEl.classList.remove("is-visible");
+      }
+
+      showStartScreen() {
+        this.state = "start";
+        this.hideScreen();
+        this.hidePauseScreen();
+        this.startScreenEl.classList.add("is-visible");
+        this.phaseSelectScreenEl.classList.remove("is-visible");
+        this.dialogue.close();
+        this.hudEl.classList.add("is-hidden");
+        this.continueButtonEl.classList.toggle("is-hidden", !this.hasSavedProgress());
+      }
+
+      showPhaseSelect() {
+        this.state = "phase-select";
+        this.hideScreen();
+        this.hidePauseScreen();
+        this.startScreenEl.classList.remove("is-visible");
+        this.phaseSelectScreenEl.classList.add("is-visible");
+        this.dialogue.close();
+        this.hudEl.classList.add("is-hidden");
+        this.renderPhaseSelect();
+        this.refreshHud();
+      }
+
+      hideMenus() {
+        this.startScreenEl.classList.remove("is-visible");
+        this.phaseSelectScreenEl.classList.remove("is-visible");
+        this.hidePauseScreen();
+        this.hudEl.classList.remove("is-hidden");
+      }
+
+      unlockPhase(phaseNumber) {
+        this.highestUnlockedPhase = Math.max(this.highestUnlockedPhase, clamp(phaseNumber, 1, PHASES.length));
+        this.saveProgress();
+      }
+
+      renderPhaseSelect() {
+        this.phaseGridEl.innerHTML = "";
+
+        PHASES.forEach((phase, index) => {
+          const unlocked = phase.id <= this.highestUnlockedPhase;
+          const card = document.createElement("div");
+          card.className = `phase-card${unlocked ? "" : " locked"}`;
+          card.innerHTML = `
+            <strong>Fase ${phase.id}</strong>
+            <p>${phase.name}</p>
+            <button class="menu-button ${unlocked ? "primary" : ""}" type="button" ${unlocked ? "" : "disabled"}>
+              ${unlocked ? "Jogar fase" : "Bloqueada"}
+            </button>
+          `;
+
+          const button = card.querySelector("button");
+          if (unlocked) {
+            button.addEventListener("click", () => this.startPhase(index));
+          }
+
+          this.phaseGridEl.appendChild(card);
+        });
+      }
+
+      startPhase(index) {
+        this.stats = { resiliencia: 0, energia: this.maxEnergy, clareza: 0, memoria: 0 };
+        this.loadPhase(index, false, true);
+        this.saveProgress();
+      }
+
+      openDialogue(dialogue) {
+        this.state = "play";
+        this.dialogue.show({
+          text: dialogue.text,
+          speaker: dialogue.speaker || "Voz Interior",
+          choices: dialogue.choices
+            ? dialogue.choices.map((choice) => ({
+                label: choice.label,
+                effect: () => choice.effect(this),
+              }))
+            : null,
+          autoCloseMs: dialogue.autoCloseMs || null,
+          onClose: dialogue.onClose ? () => dialogue.onClose(this) : null,
+          afterChoice: dialogue.afterChoice ? () => dialogue.afterChoice(this) : null,
+        });
+      }
+
+      findNearbyNpc() {
+        if (!this.phase) return null;
+        const playerCenterX = this.player.x + this.player.width / 2;
+        const playerCenterY = this.player.y + this.player.height / 2;
+        return this.phase.npcs.find((npc) => {
+          if (npc.met && !npc.repeatable) return false;
+          return Math.abs(playerCenterX - npc.x) < 46 && Math.abs(playerCenterY - npc.y) < 56;
+        }) || null;
+      }
+
+      tryInteractWithNpc() {
+        const npc = this.findNearbyNpc();
+        if (!npc) return;
+
+        const onClose = npc.onClose
+          ? () => {
+              npc.onClose(this, npc);
+              this.updateSkinLegendaryState();
+              this.refreshHud();
+              this.saveProgress();
+            }
+          : null;
+
+        const afterChoice = npc.afterChoice
+          ? () => {
+              npc.afterChoice(this, npc);
+              this.updateSkinLegendaryState();
+              this.refreshHud();
+              this.saveProgress();
+            }
+          : null;
+
+        this.dialogue.show({
+          text: npc.dialogue,
+          speaker: npc.name,
+          choices: npc.choices
+            ? npc.choices.map((choice) => ({
+                label: choice.label,
+                effect: () => choice.effect(this, npc),
+              }))
+            : null,
+          autoCloseMs: npc.autoCloseMs || null,
+          onClose,
+          afterChoice,
+        });
+
+        if (!npc.met) {
+          npc.met = true;
+          this.refreshHud();
+          this.saveProgress();
+        }
+      }
+
+      addFloatingText(text, x, y, color = "#ffb1a8") {
+        this.floatingTexts.push({ text, x, y, color, life: 900 });
+      }
+
+      spawnParticles(x, y, color, count = 8) {
+        for (let i = 0; i < count; i++) {
+          this.particles.push({
+            x,
+            y,
+            vx: (Math.random() - 0.5) * 2.2,
+            vy: -Math.random() * 2.1 - 0.3,
+            life: 500 + Math.random() * 250,
+            color,
+          });
+        }
+      }
+
+      hurt(amount, source = "spike") {
+        if (this.player.invulnerableTimer > 0) return;
+        this.stats.energia -= amount;
+        this.player.invulnerableTimer = 1000;
+        this.player.damageFlashTimer = 180;
+        this.damageOverlay = 0.34;
+        this.screenShake.strength = source === "spike" ? 5.5 : 3.5;
+        this.audio.hurt();
+        if (source === "spike") {
+          this.player.vx = this.player.facing * -3.5;
+          this.player.vy = -4.2;
+          this.addFloatingText(`-${amount} Energia`, this.player.x + this.player.width / 2, this.player.y - 8);
+          this.spawnParticles(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2, "#ff9a8f", 10);
+        }
+
+        if (this.stats.energia <= 0) {
+          this.stats.energia = 0;
+          this.refreshHud();
+          this.state = "gameover";
+          this.audio.gameOver();
+          this.showScreen("Tente novamente", "A energia se esgotou antes do fim do caminho.", "Pressione Enter ou R para recomeçar");
+        } else if (source === "pit") {
+          this.refreshHud();
+          this.saveProgress();
+          this.respawn();
+        } else {
+          this.refreshHud();
+          this.saveProgress();
+        }
+      }
+
+      respawn() {
+        this.player.reset(this.checkpoint.x, this.checkpoint.y);
+        this.player.invulnerableTimer = 700;
+      }
+
+      updateMovingPlatforms() {
+        const time = performance.now() * 0.001;
+        this.phase.platforms.forEach((platform) => {
+          if (platform.type !== "moving") return;
+          platform.previousX = platform.x;
+          platform.previousY = platform.y;
+          if (platform.axis === "x") {
+            platform.x = platform.startX + Math.sin(time * platform.speed) * platform.range;
+          } else {
+            platform.y = platform.startY + Math.sin(time * platform.speed) * platform.range * 0.35;
+          }
+        });
+      }
+
+      getSolidPlatforms() {
+        return this.phase.platforms;
+      }
+
+      resolveHorizontalCollisions(previousX) {
+        const playerBounds = this.player.getBounds();
+        for (const platform of this.getSolidPlatforms()) {
+          if (!rectsOverlap(playerBounds, platform)) continue;
+
+          if (previousX + this.player.width <= platform.x) {
+            this.player.x = platform.x - this.player.width;
+          } else if (previousX >= platform.x + platform.width) {
+            this.player.x = platform.x + platform.width;
+          }
+        }
+      }
+
+      resolveVerticalCollisions(previousY) {
+        this.player.setGrounded(false);
+        this.platformVelocity.x = 0;
+        this.platformVelocity.y = 0;
+
+        for (const platform of this.getSolidPlatforms()) {
+          const playerBounds = this.player.getBounds();
+          if (!rectsOverlap(playerBounds, platform)) continue;
+
+          const cameFromAbove = previousY + this.player.height <= platform.y + 4 && this.player.vy >= 0;
+          const cameFromBelow = previousY >= platform.y + platform.height - 4 && this.player.vy < 0;
+
+          if (cameFromAbove) {
+            this.player.y = platform.y - this.player.height;
+            this.player.vy = 0;
+            this.player.setGrounded(true);
+            if (platform.type === "moving") {
+              this.platformVelocity.x = platform.x - platform.previousX;
+              this.platformVelocity.y = platform.y - platform.previousY;
+            }
+          } else if (cameFromBelow) {
+            this.player.y = platform.y + platform.height;
+            this.player.vy = 0;
+          } else {
+            continue;
+          }
+        }
+      }
+
+      checkHazards() {
+        const bounds = this.player.getBounds();
+        const feet = this.player.getFootPosition();
+
+        for (const spike of this.phase.spikes) {
+          if (rectsOverlap(bounds, spike)) {
+            this.hurt(1, "spike");
+            return;
+          }
+        }
+
+        if (this.player.y > canvas.height + 100) {
+          this.hurt(0, "pit");
+          return;
+        }
+
+        for (const pit of this.phase.pits) {
+          const feetInsidePit = feet.center > pit.x && feet.center < pit.x + pit.width;
+          const belowPitLine = feet.y > pit.y;
+          if (feetInsidePit && belowPitLine) {
+            this.hurt(0, "pit");
+            return;
+          }
+        }
+      }
+
+      updateCheckpoints() {
+        const bounds = this.player.getBounds();
+        this.phase.checkpoints.forEach((checkpoint) => {
+          const zone = { x: checkpoint.x - 10, y: checkpoint.y - 48, width: 24, height: 56 };
+          if (!checkpoint.active && rectsOverlap(bounds, zone)) {
+            checkpoint.active = true;
+            this.checkpoint = { x: checkpoint.x, y: checkpoint.y };
+            this.spawnParticles(checkpoint.x, checkpoint.y - 18, "#f6d18b", 10);
+            this.audio.checkpoint();
+            this.refreshHud();
+            this.saveProgress();
+          }
+        });
+      }
+
+      updateMemories() {
+        const bounds = this.player.getBounds();
+        this.phase.memories.forEach((memory) => {
+          if (memory.collected) return;
+          const hitbox = { x: memory.x - 8, y: memory.y - 8, width: 16, height: 16 };
+          if (rectsOverlap(bounds, hitbox)) {
+            memory.collected = true;
+            this.stats.memoria += 1;
+            this.memoryGlowTimer = 1000;
+            this.audio.collect();
+            this.spawnParticles(memory.x, memory.y, "#fff3d4", 12);
+            this.setCheckpointFromMemory(memory);
+            this.showMemoryPhrase();
+            this.checkSpecialMemoryDialogue();
+            this.updateSkinLegendaryState();
+            this.refreshHud();
+            this.saveProgress();
+          }
+        });
+      }
+
+      showMemoryPhrase() {
+        const text = this.memoryPhrases[this.memoryPhraseIndex % this.memoryPhrases.length];
+        this.memoryPhraseIndex += 1;
+        this.memoryMessage = { text, timer: 2600 };
+        this.addFloatingText(text, this.player.x + this.player.width / 2, this.player.y - 26, "#fff1c8");
+      }
+
+      checkSpecialMemoryDialogue() {
+        if (this.stats.memoria > 0 && this.stats.memoria % 3 === 0 && !this.specialMemoryMilestones.has(this.stats.memoria)) {
+          this.specialMemoryMilestones.add(this.stats.memoria);
+          if (!this.dialogue.isBlocking()) {
+            this.dialogue.show({
+              text: "Você encontrou uma parte de si mesmo.",
+              autoCloseMs: 1900,
+            });
+          }
+        }
+      }
+
+      setCheckpointFromMemory(memory) {
+        const safePlatforms = this.getSolidPlatforms()
+          .filter((platform) => memory.x >= platform.x - 20 && memory.x <= platform.x + platform.width + 20)
+          .sort((a, b) => a.y - b.y);
+
+        if (safePlatforms.length > 0) {
+          const platform = safePlatforms[0];
+          this.checkpoint = {
+            x: clamp(memory.x - 10, 40, this.worldWidth - this.player.width - 20),
+            y: platform.y - this.player.height,
+          };
+          return;
+        }
+
+        this.checkpoint = { x: Math.max(40, memory.x - 20), y: this.phase.checkpoint.y };
+      }
+
+      updateTriggers() {
+        const bounds = this.player.getBounds();
+        this.phase.triggers.forEach((trigger) => {
+          if (trigger.used) return;
+          const zone = { x: trigger.x, y: 0, width: trigger.width, height: canvas.height };
+          if (rectsOverlap(bounds, zone)) {
+            trigger.used = true;
+            if (trigger.onEnter) {
+              trigger.onEnter(this);
+            } else {
+              this.openDialogue(trigger.dialogue);
+            }
+          }
+        });
+      }
+
+      updateCamera() {
+        const lookAhead = this.player.vx * 14;
+        const target = this.player.x - canvas.width * 0.35 + lookAhead;
+        this.cameraX += (target - this.cameraX) * 0.08;
+        this.cameraX = clamp(this.cameraX, 0, this.worldWidth - canvas.width);
+      }
+
+      updateEffects(deltaMs) {
+        this.audio.updateAmbient(deltaMs);
+        this.activeNpc = this.findNearbyNpc();
+        this.npcPromptEl.classList.toggle("is-visible", Boolean(this.activeNpc) && this.state === "play" && !this.dialogue.isBlocking());
+        this.npcPromptEl.textContent = this.activeNpc ? `Pressione E para conversar com ${this.activeNpc.name}` : "";
+        if (!this.endingScene) {
+          this.updateSubPhase();
+        }
+        this.displayedEnergy += (this.stats.energia - this.displayedEnergy) * 0.14;
+        this.memoryGlowTimer = Math.max(0, this.memoryGlowTimer - deltaMs);
+        if (this.tempModifier.timer > 0) {
+          this.tempModifier.timer = Math.max(0, this.tempModifier.timer - deltaMs);
+        }
+        if (this.tempModifier.timer === 0) {
+          this.tempModifier.speedScale = 1;
+          this.tempModifier.jumpBonus = 0;
+          this.tempModifier.darkness = 0;
+          this.tempModifier.courage = false;
+        }
+
+        if (this.silenceMomentTimer > 0) {
+          this.silenceMomentTimer = Math.max(0, this.silenceMomentTimer - deltaMs);
+          if (this.silenceMomentTimer === 0) {
+            this.timeScale = 1;
+            this.audio.pauseAmbient(false);
+            this.centerMessage = {
+              lines: ["Mesmo sem entender, eu continuei."],
+              timer: 1800,
+              position: "center",
+              color: "#f5ead7",
+            };
+          }
+        }
+
+        this.controlLockTimer = Math.max(0, this.controlLockTimer - deltaMs);
+
+        const skinSpeedBonus = this.skinLegendaryActive ? 0.18 : 0;
+        const skinJumpBonus = this.skinLegendaryActive ? -0.55 : 0;
+        this.player.speed = this.player.baseSpeed * this.tempModifier.speedScale + skinSpeedBonus;
+        this.player.jumpForce = this.player.baseJumpForce + this.tempModifier.jumpBonus + skinJumpBonus;
+
+        if (Math.abs(this.player.vx) > 0.6 && this.skinLegendaryActive) {
+          this.player.trail.push({
+            x: this.player.x + this.player.width / 2,
+            y: this.player.y + this.player.height / 2,
+            life: 220,
+          });
+        }
+        if (this.tempModifier.courage && Math.abs(this.player.vx) > 0.8) {
+          this.particles.push({
+            x: this.player.x + this.player.width / 2,
+            y: this.player.y + this.player.height / 2,
+            vx: (Math.random() - 0.5) * 0.8,
+            vy: -0.5 - Math.random() * 0.8,
+            life: 260,
+            color: "#f6deb0",
+          });
+        }
+
+        this.damageOverlay = Math.max(0, this.damageOverlay - deltaMs * 0.0018);
+        this.screenShake.strength = Math.max(0, this.screenShake.strength - deltaMs * 0.02);
+        this.transitionOverlay = Math.max(0, this.transitionOverlay - deltaMs * 0.0015);
+        this.subPhaseTransition = Math.max(0, this.subPhaseTransition - deltaMs * 0.0012);
+        if (this.centerMessage) {
+          this.centerMessage.timer -= deltaMs;
+          if (this.centerMessage.timer <= 0) {
+            this.centerMessage = null;
+          }
+        }
+        if (this.memoryMessage) {
+          this.memoryMessage.timer -= deltaMs;
+          if (this.memoryMessage.timer <= 0) {
+            this.memoryMessage = null;
+          }
+        }
+        if (this.subPhaseLabel) {
+          this.subPhaseLabel.timer -= deltaMs;
+          if (this.subPhaseLabel.timer <= 0) {
+            this.subPhaseLabel = null;
+          }
+        }
+
+        if (this.screenShake.strength > 0) {
+          this.screenShake.x = (Math.random() - 0.5) * this.screenShake.strength;
+          this.screenShake.y = (Math.random() - 0.5) * this.screenShake.strength;
+        } else {
+          this.screenShake.x = 0;
+          this.screenShake.y = 0;
+        }
+
+        this.floatingTexts = this.floatingTexts
+          .map((text) => ({ ...text, y: text.y - 0.5, life: text.life - deltaMs }))
+          .filter((text) => text.life > 0);
+
+        this.particles = this.particles
+          .map((particle) => ({
+            ...particle,
+            x: particle.x + particle.vx,
+            y: particle.y + particle.vy,
+            vy: particle.vy + 0.06,
+            life: particle.life - deltaMs,
+          }))
+          .filter((particle) => particle.life > 0);
+
+        this.player.trail = this.player.trail
+          .map((piece) => ({ ...piece, life: piece.life - deltaMs }))
+          .filter((piece) => piece.life > 0);
+      }
+
+      update(deltaMs) {
+        if (this.state === "pause") return;
+        if (this.state !== "play" && this.state !== "ending") return;
+
+        if (this.state === "ending") {
+          this.updateEnding(deltaMs);
+          this.input.endFrame();
+          return;
+        }
+
+        const scaledDelta = deltaMs * this.timeScale;
+        this.dialogue.update(scaledDelta);
+        this.updateMovingPlatforms();
+
+        this.player.handleInput(this.input, !this.dialogue.isBlocking() && this.controlLockTimer <= 0);
+        const previousX = this.player.x;
+        const previousY = this.player.y;
+        const jumped = this.player.update(scaledDelta, this.gravity);
+        if (jumped) {
+          this.audio.jump();
+          this.spawnParticles(this.player.x + this.player.width / 2, this.player.y + this.player.height, "#e6ddc5", 6);
+        }
+        this.player.x = clamp(this.player.x, 0, this.worldWidth - this.player.width);
+        this.resolveHorizontalCollisions(previousX);
+        this.resolveVerticalCollisions(previousY);
+        if (this.player.grounded) {
+          this.player.x += this.platformVelocity.x;
+          this.player.y += this.platformVelocity.y;
+        }
+        this.player.x = clamp(this.player.x, 0, this.worldWidth - this.player.width);
+        this.updateCheckpoints();
+        this.updateMemories();
+        this.updateTriggers();
+        this.checkHazards();
+        this.updateCamera();
+        this.updateEffects(scaledDelta);
+
+        this.fadeTarget = this.dialogue.isBlocking() ? 0.18 : 0;
+        this.fadeTarget += this.tempModifier.darkness || 0;
+        if (this.controlLockTimer > 0) {
+          this.fadeTarget += 0.1;
+        }
+        this.fade += (this.fadeTarget - this.fade) * 0.08;
+        this.input.endFrame();
+      }
+
+      updateEnding(deltaMs) {
+        const scaledDelta = deltaMs * this.timeScale;
+        this.updateMovingPlatforms();
+
+        const userMove = this.controlLockTimer > 0 ? 0 : (this.input.isPressed("arrowleft", "a") ? -0.18 : 0) + (this.input.isPressed("arrowright", "d") ? 0.3 : 0);
+        this.player.moveIntent = clamp(this.endingScene.walkSpeed + userMove, -1, 1);
+        this.player.facing = 1;
+        this.player.jumpBufferTimer = 0;
+
+        const previousX = this.player.x;
+        const previousY = this.player.y;
+        this.player.update(scaledDelta, this.gravity);
+        this.player.x = clamp(this.player.x, 0, this.worldWidth - this.player.width);
+        this.resolveHorizontalCollisions(previousX);
+        this.resolveVerticalCollisions(previousY);
+        if (this.player.grounded) {
+          this.player.x += this.platformVelocity.x;
+          this.player.y += this.platformVelocity.y;
+        }
+        this.player.x = clamp(this.player.x, 0, this.worldWidth - this.player.width);
+
+        this.controlLockTimer = Math.max(0, this.controlLockTimer - scaledDelta);
+
+        if (this.endingScene) {
+          this.endingScene.timer = Math.max(0, this.endingScene.timer - scaledDelta);
+          this.endingScene.particleTimer -= scaledDelta;
+          if (this.endingScene.particleTimer <= 0) {
+            this.endingScene.particleTimer = 160;
+            this.particles.push({
+              x: this.player.x + 4 + Math.random() * (this.player.width + 16),
+              y: this.player.y + 8 + Math.random() * 26,
+              vx: (Math.random() - 0.5) * 0.35,
+              vy: -0.5 - Math.random() * 0.45,
+              life: 680 + Math.random() * 180,
+              color: this.skinLegendaryActive ? "#fff2c9" : "#f4eadb",
+            });
+          }
+
+          if (this.endingScene.timer === 0 && !this.endingScene.done) {
+            this.advanceEndingLine();
+          }
+
+          if (this.endingScene.done) {
+            this.endingScene.fadeOut = Math.min(1, this.endingScene.fadeOut + scaledDelta * 0.0003);
+            this.audio.setMasterVolume(Math.max(0, 0.8 - this.endingScene.fadeOut));
+            if (this.endingScene.fadeOut >= 1) {
+              this.state = "complete";
+              this.endingScene = null;
+              this.centerMessage = null;
+              this.audio.pauseAmbient(true);
+              this.saveProgress();
+              this.showScreen(
+                "Obrigado por jogar",
+                "\"A minha dor não me quebrou.\"\n\"Ela me construiu.\"",
+                "Pressione Enter para voltar à seleção de fases"
+              );
+              return;
+            }
+          }
+        }
+
+        this.updateCamera();
+        this.updateEffects(scaledDelta);
+        this.fadeTarget = 0.06 + (this.endingScene?.fadeOut || 0) * 0.88;
+        this.fade += (this.fadeTarget - this.fade) * 0.05;
+      }
+
+      drawMemory(memory) {
+        if (memory.collected) return;
+        const x = memory.x - this.cameraX;
+        const bob = Math.sin(performance.now() * 0.003 + memory.x) * 3;
+        const y = memory.baseY + bob;
+        ctx.fillStyle = "#fff3d4";
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffe09d";
+        ctx.fillRect(x - 2, y - 10, 4, 4);
+      }
+
+      drawSkinTrail() {
+        this.player.trail.forEach((piece) => {
+          ctx.save();
+          ctx.globalAlpha = clamp(piece.life / 220, 0, 1) * 0.55;
+          ctx.fillStyle = "#ffe7a5";
+          ctx.beginPath();
+          ctx.arc(piece.x - this.cameraX, piece.y, 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+      }
+
+      drawSpikes(spike) {
+        const x = spike.x - this.cameraX;
+        const count = Math.floor(spike.width / 16);
+        ctx.fillStyle = "#d5dbe4";
+        for (let i = 0; i < count; i++) {
+          ctx.beginPath();
+          ctx.moveTo(x + i * 16, spike.y + spike.height);
+          ctx.lineTo(x + i * 16 + 8, spike.y);
+          ctx.lineTo(x + i * 16 + 16, spike.y + spike.height);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+
+      drawCheckpoints() {
+        this.phase.checkpoints.forEach((checkpoint) => {
+          const x = checkpoint.x - this.cameraX;
+          const glow = checkpoint.active ? 0.9 : 0.45;
+          ctx.fillStyle = `rgba(246, 209, 139, ${glow * 0.24})`;
+          ctx.beginPath();
+          ctx.arc(x + 4, checkpoint.y - 10, 18, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#f0ddb0";
+          ctx.fillRect(x, checkpoint.y - 32, 4, 32);
+          ctx.fillStyle = checkpoint.active ? "#fff2be" : "#d3c1a2";
+          ctx.beginPath();
+          ctx.moveTo(x + 4, checkpoint.y - 30);
+          ctx.lineTo(x + 22, checkpoint.y - 24);
+          ctx.lineTo(x + 4, checkpoint.y - 16);
+          ctx.closePath();
+          ctx.fill();
+        });
+      }
+
+      drawNpcs() {
+        this.phase.npcs.forEach((npc) => {
+          const x = npc.x - this.cameraX;
+          const y = npc.y;
+          const isNearby = this.activeNpc === npc;
+
+          ctx.save();
+          if (npc.role === "father") {
+            ctx.fillStyle = "#2f3139";
+            ctx.fillRect(x - 9, y - 26, 18, 18);
+            ctx.fillStyle = "#dbc0aa";
+            ctx.fillRect(x - 7, y - 42, 14, 14);
+            ctx.fillStyle = "#202226";
+            ctx.fillRect(x - 8, y - 16, 6, 16);
+            ctx.fillRect(x + 2, y - 16, 6, 16);
+          } else if (npc.role === "grandmother") {
+            ctx.fillStyle = "#8a8077";
+            ctx.fillRect(x - 8, y - 24, 16, 16);
+            ctx.fillStyle = "#e4c9b3";
+            ctx.fillRect(x - 7, y - 38, 14, 14);
+            ctx.fillStyle = "#59505a";
+            ctx.fillRect(x - 8, y - 8, 16, 12);
+          } else if (npc.role === "shadow") {
+            ctx.fillStyle = "rgba(25, 25, 32, 0.85)";
+            ctx.fillRect(x - 9, y - 24, 18, 28);
+          } else {
+            ctx.fillStyle = "#9a8f87";
+            ctx.fillRect(x - 8, y - 24, 16, 16);
+            ctx.fillStyle = "#ead0bb";
+            ctx.fillRect(x - 7, y - 38, 14, 14);
+            ctx.fillStyle = "#5b4f59";
+            ctx.fillRect(x - 8, y - 8, 16, 12);
+          }
+
+          if (isNearby) {
+            const prompt = "Pressione E para conversar";
+            ctx.font = "12px Georgia";
+            ctx.fillStyle = "rgba(10, 12, 18, 0.72)";
+            const textWidth = ctx.measureText(prompt).width + 18;
+            ctx.fillRect(x - textWidth / 2 + 1, y - 66, textWidth, 22);
+            ctx.strokeStyle = "rgba(255, 245, 225, 0.18)";
+            ctx.strokeRect(x - textWidth / 2 + 1, y - 66, textWidth, 22);
+            ctx.fillStyle = "#fff1c9";
+            ctx.fillText(prompt, x - textWidth / 2 + 10, y - 51);
+          }
+          ctx.restore();
+        });
+      }
+
+      drawFloatingTexts() {
+        this.floatingTexts.forEach((text) => {
+          ctx.save();
+          ctx.globalAlpha = clamp(text.life / 900, 0, 1);
+          ctx.fillStyle = text.color;
+          ctx.font = "16px Georgia";
+          ctx.fillText(text.text, text.x - this.cameraX - 28, text.y);
+          ctx.restore();
+        });
+      }
+
+      drawMemoryMessage() {
+        if (!this.memoryMessage) return;
+        ctx.save();
+        ctx.globalAlpha = clamp(this.memoryMessage.timer / 2200, 0, 1);
+        ctx.fillStyle = "#fff4d5";
+        ctx.font = "18px Georgia";
+        ctx.fillText(this.memoryMessage.text, 80, canvas.height - 60);
+        ctx.restore();
+      }
+
+      drawCenterMessage() {
+        if (!this.centerMessage) return;
+        const alpha = clamp(this.centerMessage.timer / 3600, 0, 1);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = this.centerMessage.color || "#fff3d7";
+        const baseY = this.centerMessage.position === "lower" ? canvas.height - 120 : canvas.height / 2 - 20;
+        this.centerMessage.lines.forEach((line, index) => {
+          ctx.font = index === 0 ? "28px Georgia" : "18px Georgia";
+          const width = ctx.measureText(line).width;
+          ctx.fillText(line, canvas.width / 2 - width / 2, baseY + index * 32);
+        });
+        ctx.restore();
+      }
+
+      drawParticles() {
+        this.particles.forEach((particle) => {
+          ctx.save();
+          ctx.globalAlpha = clamp(particle.life / 700, 0, 1);
+          ctx.fillStyle = particle.color;
+          ctx.fillRect(particle.x - this.cameraX, particle.y, 3, 3);
+          ctx.restore();
+        });
+      }
+
+      drawPlatforms() {
+        this.phase.platforms.forEach((platform) => {
+          const x = platform.x - this.cameraX;
+          if (platform.type === "ground") {
+            ctx.fillStyle = this.phase.theme === "bright" ? "#5d9b53" : this.phase.theme === "storm" ? "#4f5c60" : "#607280";
+            ctx.fillRect(x, platform.y, platform.width, platform.height);
+            ctx.fillStyle = this.phase.theme === "bright" ? "#87cf74" : this.phase.theme === "storm" ? "#7a8b92" : "#90a4b8";
+            ctx.fillRect(x, platform.y, platform.width, 18);
+          } else if (platform.type === "crate") {
+            ctx.fillStyle = "#8f684a";
+            ctx.fillRect(x, platform.y, platform.width, platform.height);
+            ctx.strokeStyle = "#6d4e35";
+            ctx.strokeRect(x + 4, platform.y + 4, platform.width - 8, platform.height - 8);
+            ctx.beginPath();
+            ctx.moveTo(x + 4, platform.y + 4);
+            ctx.lineTo(x + platform.width - 4, platform.y + platform.height - 4);
+            ctx.moveTo(x + platform.width - 4, platform.y + 4);
+            ctx.lineTo(x + 4, platform.y + platform.height - 4);
+            ctx.stroke();
+          } else {
+            ctx.fillStyle = platform.type === "moving" ? "#d8c5aa" : "#b0b7c4";
+            ctx.fillRect(x, platform.y, platform.width, platform.height);
+            ctx.fillStyle = "rgba(255,255,255,0.18)";
+            ctx.fillRect(x, platform.y, platform.width, 4);
+          }
+        });
+      }
+
+      drawBackground() {
+        if (this.endingScene) {
+          const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+          sky.addColorStop(0, "#f7e2c8");
+          sky.addColorStop(0.45, "#f6d7b6");
+          sky.addColorStop(1, "#efe7dd");
+          ctx.fillStyle = sky;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = "rgba(255, 247, 231, 0.76)";
+          ctx.beginPath();
+          ctx.arc(canvas.width - 120, 92, 56, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "rgba(160, 141, 123, 0.12)";
+          for (let i = 0; i < 7; i++) {
+            const width = 70 + (i % 3) * 36;
+            const height = 120 + (i % 4) * 40;
+            const x = i * 130 - (this.cameraX * 0.08);
+            ctx.fillRect(x, 410 - height, width, height);
+          }
+          ctx.fillStyle = "#d5c8b7";
+          ctx.fillRect(0, 350, canvas.width, 190);
+          return;
+        }
+
+        const subPhaseId = this.currentSubPhase?.id || "";
+        if (this.phase.theme === "bright") {
+          const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+          sky.addColorStop(0, subPhaseId === "1C" ? "#7486a5" : subPhaseId === "1B" ? "#9fdbff" : "#89d7ff");
+          sky.addColorStop(1, subPhaseId === "1C" ? "#ceb8b8" : subPhaseId === "1B" ? "#e7f4ff" : "#d1f0ff");
+          ctx.fillStyle = sky;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = subPhaseId === "1C" ? "rgba(255,245,235,0.46)" : "rgba(255,255,255,0.8)";
+          ctx.beginPath();
+          ctx.arc(780, 90, 42, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = subPhaseId === "1C" ? "#b7c094" : subPhaseId === "1B" ? "#d8e8b2" : "#cde8a8";
+          ctx.fillRect(0, 350, canvas.width, 190);
+        } else if (this.phase.theme === "storm") {
+          const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+          sky.addColorStop(0, subPhaseId === "2C" ? "#43505c" : subPhaseId === "2B" ? "#2b333f" : "#37445c");
+          sky.addColorStop(1, subPhaseId === "2C" ? "#1f2730" : subPhaseId === "2B" ? "#10161f" : "#19222e");
+          ctx.fillStyle = sky;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          for (let i = 0; i < 70; i++) {
+            const rx = (i * 137 + performance.now() * 0.18) % (canvas.width + 100) - 50;
+            const ry = (i * 47) % canvas.height;
+            ctx.strokeStyle = subPhaseId === "2B" ? "rgba(190,205,230,0.11)" : "rgba(210,225,255,0.2)";
+            ctx.beginPath();
+            ctx.moveTo(rx, ry);
+            ctx.lineTo(rx - 8, ry + 20);
+            ctx.stroke();
+          }
+        } else {
+          const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+          sky.addColorStop(0, subPhaseId === "3C" ? "#f0c797" : subPhaseId === "3B" ? "#b59e95" : "#d1b492");
+          sky.addColorStop(1, subPhaseId === "3C" ? "#8891ad" : subPhaseId === "3B" ? "#6d667a" : "#7d7d93");
+          ctx.fillStyle = sky;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = subPhaseId === "3C" ? "rgba(56,63,84,0.38)" : "rgba(48,55,72,0.45)";
+          for (let i = 0; i < 10; i++) {
+            const width = 60 + (i % 3) * 34;
+            const height = 130 + (i % 4) * 40;
+            const x = i * 110 - (this.cameraX * 0.12);
+            ctx.fillRect(x, 400 - height, width, height);
+          }
+        }
+      }
+
+      drawDecor() {
+        if (this.endingScene) {
+          ctx.fillStyle = "rgba(255,255,255,0.28)";
+          ctx.beginPath();
+          ctx.ellipse(170 - this.cameraX * 0.06, 110, 120, 28, 0, 0, Math.PI * 2);
+          ctx.ellipse(340 - this.cameraX * 0.05, 128, 90, 22, 0, 0, Math.PI * 2);
+          ctx.fill();
+          return;
+        }
+
+        const subPhaseId = this.currentSubPhase?.id || "";
+        if (this.phase.theme === "bright") {
+          ctx.fillStyle = subPhaseId === "1C" ? "rgba(255,236,236,0.22)" : "rgba(255,255,255,0.5)";
+          ctx.beginPath();
+          ctx.ellipse(190 - this.cameraX * 0.12, 90, 80, 24, 0, 0, Math.PI * 2);
+          ctx.ellipse(280 - this.cameraX * 0.12, 100, 60, 20, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (this.phase.theme === "storm") {
+          ctx.fillStyle = subPhaseId === "2B" ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.05)";
+          for (let i = 0; i < 4; i++) {
+            const x = i * 320 - this.cameraX * 0.18;
+            ctx.beginPath();
+            ctx.moveTo(x, 360);
+            ctx.quadraticCurveTo(x + 120, 240, x + 260, 360);
+            ctx.lineTo(x + 260, canvas.height);
+            ctx.lineTo(x, canvas.height);
+            ctx.closePath();
+            ctx.fill();
+          }
+        } else {
+          ctx.fillStyle = "rgba(255,255,255,0.08)";
+          ctx.fillRect(0, 360, canvas.width, 10);
+        }
+      }
+
+      drawSubPhaseLabel() {
+        if (!this.subPhaseLabel) return;
+        ctx.save();
+        const alpha = clamp(this.subPhaseLabel.timer / 1600, 0, 1);
+        const width = 132;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = "rgba(16, 18, 24, 0.42)";
+        ctx.fillRect(canvas.width / 2 - width / 2, 24, width, 34);
+        ctx.strokeStyle = "rgba(255, 240, 213, 0.34)";
+        ctx.strokeRect(canvas.width / 2 - width / 2, 24, width, 34);
+        ctx.fillStyle = "#fff0d3";
+        ctx.font = "18px Georgia";
+        const textWidth = ctx.measureText(this.subPhaseLabel.text).width;
+        ctx.fillText(this.subPhaseLabel.text, canvas.width / 2 - textWidth / 2, 46);
+        ctx.restore();
+      }
+
+      drawPhaseGoal() {
+        const x = this.worldWidth - 70 - this.cameraX;
+        ctx.fillStyle = "#f4df9c";
+        ctx.fillRect(x, 250, 8, 150);
+        ctx.fillStyle = "#fff1c1";
+        ctx.beginPath();
+        ctx.moveTo(x + 8, 250);
+        ctx.lineTo(x + 46, 262);
+        ctx.lineTo(x + 8, 280);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      drawAtmosphere() {
+        if (this.transitionOverlay > 0.001) {
+          ctx.fillStyle = `rgba(255, 244, 226, ${this.transitionOverlay})`;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        if (this.currentSubPhase?.overlay) {
+          ctx.fillStyle = this.currentSubPhase.overlay;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        if (this.subPhaseTransition > 0.001) {
+          ctx.fillStyle = `rgba(255, 245, 232, ${this.subPhaseTransition})`;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        if (this.fade > 0.001) {
+          ctx.fillStyle = `rgba(6, 8, 12, ${this.fade})`;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        if (this.damageOverlay > 0.001) {
+          ctx.fillStyle = `rgba(255, 96, 84, ${this.damageOverlay})`;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        const vignette = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 100, canvas.width / 2, canvas.height / 2, 520);
+        vignette.addColorStop(0, "rgba(0,0,0,0)");
+        vignette.addColorStop(1, this.endingScene ? "rgba(42,28,18,0.18)" : "rgba(20,14,14,0.22)");
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.translate(this.screenShake.x, this.screenShake.y);
+        this.drawBackground();
+        this.drawDecor();
+        this.drawPlatforms();
+        if (!this.endingScene) {
+          this.drawCheckpoints();
+          this.drawNpcs();
+          this.phase.spikes.forEach((spike) => this.drawSpikes(spike));
+          this.phase.memories.forEach((memory) => this.drawMemory(memory));
+        }
+        this.drawParticles();
+        this.drawSkinTrail();
+        if (!this.endingScene) {
+          this.drawPhaseGoal();
+        }
+        if (this.skinLegendaryActive) {
+          ctx.save();
+          ctx.shadowColor = "rgba(255, 230, 164, 0.75)";
+          ctx.shadowBlur = 16;
+          this.player.draw(ctx, this.cameraX);
+          ctx.restore();
+        }
+        this.player.draw(ctx, this.cameraX);
+        this.drawFloatingTexts();
+        this.drawMemoryMessage();
+        this.drawCenterMessage();
+        this.drawAtmosphere();
+        this.drawSubPhaseLabel();
+        ctx.restore();
+      }
+
+      loop = (timestamp) => {
+        const deltaMs = timestamp - this.lastTime;
+        this.lastTime = timestamp;
+        this.update(deltaMs || 16);
+        this.render();
+        requestAnimationFrame(this.loop);
+      };
+
+      start() {
+        requestAnimationFrame(this.loop);
+      }
+    }
+
+    const game = new Game();
+    game.start();
+  </script>
+</body>
+</html>
