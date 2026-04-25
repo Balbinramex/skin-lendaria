@@ -880,6 +880,10 @@
         this.masterVolume = 1;
       }
 
+      randomize(base, variation = 0.03) {
+        return base * (1 + (Math.random() * 2 - 1) * variation);
+      }
+
       ensureReady() {
         if (!this.context) {
           const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -911,11 +915,11 @@
         osc.stop(now + duration + 0.02);
       }
 
-      jump() { this.tone({ frequency: 430, duration: 0.12, type: "triangle", volume: 0.14 }); }
-      collect() { this.tone({ frequency: 660, duration: 0.1, type: "triangle", volume: 0.12 }); this.tone({ frequency: 860, duration: 0.12, type: "triangle", volume: 0.1, when: 0.03 }); }
-      hurt() { this.tone({ frequency: 180, duration: 0.18, type: "sawtooth", volume: 0.11 }); }
+      jump() { this.tone({ frequency: this.randomize(430, 0.06), duration: 0.12, type: "triangle", volume: 0.3 }); }
+      collect() { this.tone({ frequency: this.randomize(660, 0.05), duration: 0.12, type: "triangle", volume: 0.6 }); this.tone({ frequency: this.randomize(900, 0.05), duration: 0.15, type: "triangle", volume: 0.34, when: 0.03 }); }
+      hurt() { this.tone({ frequency: this.randomize(176, 0.04), duration: 0.22, type: "sawtooth", volume: 0.8 }); this.tone({ frequency: this.randomize(118, 0.03), duration: 0.28, type: "triangle", volume: 0.42, when: 0.02 }); }
       dialogue() { this.tone({ frequency: 320, duration: 0.16, type: "sine", volume: 0.08 }); }
-      choice() { this.tone({ frequency: 520, duration: 0.08, type: "triangle", volume: 0.12 }); this.tone({ frequency: 640, duration: 0.12, type: "triangle", volume: 0.1, when: 0.03 }); }
+      choice() { this.tone({ frequency: this.randomize(520, 0.05), duration: 0.1, type: "triangle", volume: 0.5 }); this.tone({ frequency: this.randomize(670, 0.05), duration: 0.14, type: "triangle", volume: 0.24, when: 0.03 }); }
       transition() { this.tone({ frequency: 260, duration: 0.22, type: "sine", volume: 0.08 }); this.tone({ frequency: 390, duration: 0.18, type: "sine", volume: 0.07, when: 0.06 }); }
       checkpoint() { this.tone({ frequency: 560, duration: 0.12, type: "triangle", volume: 0.1 }); this.tone({ frequency: 740, duration: 0.18, type: "sine", volume: 0.08, when: 0.04 }); }
       phaseEnd() { this.tone({ frequency: 420, duration: 0.16, type: "triangle", volume: 0.11 }); this.tone({ frequency: 560, duration: 0.16, type: "triangle", volume: 0.1, when: 0.05 }); this.tone({ frequency: 720, duration: 0.24, type: "sine", volume: 0.09, when: 0.1 }); }
@@ -1396,12 +1400,13 @@
             width: 70,
             onEnter: (game) => {
               game.transitionOverlay = 0.22;
-              game.centerMessage = {
+              game.enqueueNarrative({
                 lines: ["O ceu nao escureceu de uma vez.", "Mas eu senti quando mudou."],
-                timer: 1900,
+                duration: 1900,
                 position: "center",
-                color: "#f4e7d7",
-              };
+                pauseGameplay: true,
+                minReadMs: 900,
+              });
             },
           }),
           createTrigger({
@@ -1469,9 +1474,8 @@
         ],
         spikes: [
           { x: 870, y: 380, width: 56, height: 20 },
-          { x: 2070, y: 380, width: 70, height: 20 },
-          { x: 2390, y: 380, width: 70, height: 20 },
-          { x: 2685, y: 380, width: 70, height: 20 },
+          { x: 2385, y: 380, width: 64, height: 20 },
+          { x: 2710, y: 380, width: 64, height: 20 },
         ],
         memories: [
           { x: 640, y: 304 },
@@ -1481,7 +1485,7 @@
         ],
         npcs: [
           {
-            x: 2160,
+            x: 2235,
             y: 396,
             name: "Pai",
             role: "father",
@@ -1704,6 +1708,8 @@
         this.subPhaseLabel = null;
         this.centerMessage = null;
         this.endingScene = null;
+        this.textQueue = [];
+        this.activeNarrative = null;
         this.memoryPhrases = [
           "Eu era pequeno demais para entender, mas grande o bastante para sentir.",
           "Algumas ausências ensinam antes mesmo da vida explicar.",
@@ -1730,6 +1736,7 @@
         this.silenceMomentUsed = false;
         this.silenceMomentTimer = 0;
         this.controlLockTimer = 0;
+        this.narrativeLockTimer = 0;
         this.timeScale = 1;
         this.isMobile = window.matchMedia("(hover: none), (pointer: coarse)").matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         this.particleScale = this.isMobile ? 0.55 : 1;
@@ -1933,6 +1940,11 @@
           return;
         }
 
+        if (this.activeNarrative && (event.key === "Enter" || event.key === " ")) {
+          this.dismissNarrative(false);
+          return;
+        }
+
         if (key === "e" && this.state === "play" && !this.dialogue.isBlocking()) {
           this.tryInteractWithNpc();
           return;
@@ -2011,11 +2023,14 @@
         this.particles = [];
         this.memoryMessage = null;
         this.endingScene = null;
+        this.textQueue = [];
+        this.activeNarrative = null;
         this.specialMemoryMilestones.clear();
         this.tempModifier = { timer: 0, speedScale: 1, jumpBonus: 0 };
         this.silenceMomentUsed = false;
         this.silenceMomentTimer = 0;
         this.controlLockTimer = 0;
+        this.narrativeLockTimer = 0;
         this.timeScale = 1;
         this.displayedEnergy = keepStats ? clamp(this.stats.energia, 0, this.maxEnergy) : this.maxEnergy;
         this.memoryGlowTimer = 0;
@@ -2065,6 +2080,45 @@
             this.openDialogue(trigger.dialogue);
           }
         });
+      }
+
+      enqueueNarrative({
+        text,
+        lines,
+        duration = 2200,
+        position = "center",
+        pauseGameplay = false,
+        minReadMs = 650,
+        color = "#ffffff",
+      }) {
+        const entry = {
+          lines: lines || [text],
+          timer: duration,
+          totalDuration: duration,
+          position,
+          pauseGameplay,
+          minReadMs,
+          color,
+          age: 0,
+        };
+        this.textQueue.push(entry);
+        if (!this.activeNarrative) {
+          this.advanceNarrativeQueue();
+        }
+      }
+
+      advanceNarrativeQueue() {
+        this.activeNarrative = this.textQueue.shift() || null;
+        if (this.activeNarrative?.pauseGameplay) {
+          this.narrativeLockTimer = Math.max(this.narrativeLockTimer, this.activeNarrative.minReadMs);
+        }
+      }
+
+      dismissNarrative(force = false) {
+        if (!this.activeNarrative) return;
+        if (!force && this.activeNarrative.age < this.activeNarrative.minReadMs) return;
+        this.activeNarrative = null;
+        this.advanceNarrativeQueue();
       }
 
       restartGame() {
@@ -2172,7 +2226,7 @@
         }
         this.endingScene.timer = currentLine.duration;
         if (currentLine.silence) {
-          this.centerMessage = null;
+          this.activeNarrative = null;
           this.audio.pauseAmbient(true);
           return;
         }
@@ -2180,11 +2234,15 @@
         if (this.endingScene.index > 0) {
           this.audio.pauseAmbient(false);
         }
-        this.centerMessage = {
+        this.activeNarrative = {
           lines: [currentLine.text],
           timer: currentLine.duration,
+          totalDuration: currentLine.duration,
           position: "center",
-          color: this.skinLegendaryActive ? "#fff5db" : "#f7eee3",
+          color: "#ffffff",
+          age: 0,
+          pauseGameplay: false,
+          minReadMs: 300,
         };
       }
 
@@ -2245,16 +2303,17 @@
             this.spawnParticles(this.player.x + this.player.width / 2, this.player.y + 12, "#ffe7a5", 16);
             this.addFloatingText("Skin Lendária ativa", this.player.x + this.player.width / 2, this.player.y - 18, "#ffe7a5");
             this.audio.unlockSkin();
-            this.centerMessage = {
+            this.enqueueNarrative({
               lines: [
                 "Skin Lendária desbloqueada.",
                 "Você não virou forte porque não sofreu.",
                 "Você virou forte porque continuou.",
               ],
-              timer: 3600,
+              duration: 3600,
               position: "center",
-              color: "#fff3cf",
-            };
+              pauseGameplay: true,
+              minReadMs: 1200,
+            });
           }
           this.saveProgress();
           this.refreshHud();
@@ -2287,15 +2346,16 @@
         this.timeScale = 0.68;
         this.audio.pauseAmbient(true);
         this.controlLockTimer = 2400;
-        this.centerMessage = {
+        this.enqueueNarrative({
           lines: [
             "Naquele dia, o mundo continuou girando.",
             "Mas dentro de mim, tudo parou.",
           ],
-          timer: 2600,
+          duration: 2600,
           position: "center",
-          color: "#f1e7d8",
-        };
+          pauseGameplay: true,
+          minReadMs: 1200,
+        });
       }
 
       showScreen(title, text, hint) {
@@ -2385,6 +2445,11 @@
       }
 
       processVirtualUiInputs() {
+        if (this.activeNarrative) {
+          if (this.input.wasPressed(" ")) this.dismissNarrative(false);
+          return;
+        }
+
         if (this.dialogue.isBlocking()) {
           if (this.input.wasPressed("1")) this.dialogue.handleKey({ key: "1" });
           if (this.input.wasPressed("2")) this.dialogue.handleKey({ key: "2" });
@@ -2398,6 +2463,16 @@
       }
 
       openDialogue(dialogue) {
+        if (this.activeNarrative) {
+          this.enqueueNarrative({
+            text: dialogue.text,
+            duration: dialogue.autoCloseMs || 2200,
+            position: "center",
+            pauseGameplay: true,
+            minReadMs: 800,
+          });
+          return;
+        }
         this.state = "play";
         this.dialogue.show({
           text: dialogue.text,
@@ -2424,9 +2499,20 @@
         }) || null;
       }
 
+      getFatherFocusNpc() {
+        if (!this.phase) return null;
+        const playerCenterX = this.player.x + this.player.width / 2;
+        return this.phase.npcs.find((npc) => npc.role === "father" && Math.abs(playerCenterX - npc.x) < 180) || null;
+      }
+
       tryInteractWithNpc() {
         const npc = this.findNearbyNpc();
         if (!npc) return;
+
+        if (npc.role === "father") {
+          this.transitionOverlay = Math.max(this.transitionOverlay, 0.12);
+          this.controlLockTimer = Math.max(this.controlLockTimer, 260);
+        }
 
         const onClose = npc.onClose
           ? () => {
@@ -2647,19 +2733,26 @@
       showMemoryPhrase() {
         const text = this.memoryPhrases[this.memoryPhraseIndex % this.memoryPhrases.length];
         this.memoryPhraseIndex += 1;
-        this.memoryMessage = { text, timer: 2600 };
+        this.enqueueNarrative({
+          text,
+          duration: 2600,
+          position: "lower",
+          pauseGameplay: false,
+          minReadMs: 450,
+        });
         this.addFloatingText(text, this.player.x + this.player.width / 2, this.player.y - 26, "#fff1c8");
       }
 
       checkSpecialMemoryDialogue() {
         if (this.stats.memoria > 0 && this.stats.memoria % 3 === 0 && !this.specialMemoryMilestones.has(this.stats.memoria)) {
           this.specialMemoryMilestones.add(this.stats.memoria);
-          if (!this.dialogue.isBlocking()) {
-            this.dialogue.show({
-              text: "Você encontrou uma parte de si mesmo.",
-              autoCloseMs: 1900,
-            });
-          }
+          this.enqueueNarrative({
+            text: "Você encontrou uma parte de si mesmo.",
+            duration: 1900,
+            position: "center",
+            pauseGameplay: true,
+            minReadMs: 850,
+          });
         }
       }
 
@@ -2681,6 +2774,7 @@
       }
 
       updateTriggers() {
+        if (this.activeNarrative || this.dialogue.isBlocking()) return;
         const bounds = this.player.getBounds();
         this.phase.triggers.forEach((trigger) => {
           if (trigger.used) return;
@@ -2697,8 +2791,13 @@
       }
 
       updateCamera() {
+        const fatherFocusNpc = this.getFatherFocusNpc();
         const lookAhead = this.player.vx * 14;
-        const target = this.player.x - canvas.width * 0.35 + lookAhead;
+        let target = this.player.x - canvas.width * 0.35 + lookAhead;
+        if (fatherFocusNpc && !fatherFocusNpc.met && !this.dialogue.isBlocking()) {
+          target = (this.player.x + fatherFocusNpc.x) * 0.5 - canvas.width * 0.4;
+          this.transitionOverlay = Math.max(this.transitionOverlay, 0.05);
+        }
         this.cameraX += (target - this.cameraX) * 0.08;
         this.cameraX = clamp(this.cameraX, 0, this.worldWidth - canvas.width);
       }
@@ -2706,6 +2805,7 @@
       updateEffects(deltaMs) {
         this.audio.updateAmbient(deltaMs);
         this.activeNpc = this.findNearbyNpc();
+        const fatherFocusNpc = this.getFatherFocusNpc();
         this.npcPromptEl.classList.toggle("is-visible", Boolean(this.activeNpc) && this.state === "play" && !this.dialogue.isBlocking());
         this.npcPromptEl.textContent = this.activeNpc ? `Pressione E para conversar com ${this.activeNpc.name}` : "";
         if (!this.endingScene) {
@@ -2728,20 +2828,23 @@
           if (this.silenceMomentTimer === 0) {
             this.timeScale = 1;
             this.audio.pauseAmbient(false);
-            this.centerMessage = {
-              lines: ["Mesmo sem entender, eu continuei."],
-              timer: 1800,
+            this.enqueueNarrative({
+              text: "Mesmo sem entender, eu continuei.",
+              duration: 1800,
               position: "center",
-              color: "#f5ead7",
-            };
+              pauseGameplay: true,
+              minReadMs: 700,
+            });
           }
         }
 
         this.controlLockTimer = Math.max(0, this.controlLockTimer - deltaMs);
+        this.narrativeLockTimer = Math.max(0, this.narrativeLockTimer - deltaMs);
 
         const skinSpeedBonus = this.skinLegendaryActive ? 0.18 : 0;
         const skinJumpBonus = this.skinLegendaryActive ? -0.55 : 0;
-        this.player.speed = this.player.baseSpeed * this.tempModifier.speedScale + skinSpeedBonus;
+        const fatherSlow = fatherFocusNpc && !fatherFocusNpc.met && !this.dialogue.isBlocking() ? 0.74 : 1;
+        this.player.speed = this.player.baseSpeed * this.tempModifier.speedScale * fatherSlow + skinSpeedBonus;
         this.player.jumpForce = this.player.baseJumpForce + this.tempModifier.jumpBonus + skinJumpBonus;
 
         if (Math.abs(this.player.vx) > 0.6 && this.skinLegendaryActive) {
@@ -2766,18 +2869,11 @@
         this.screenShake.strength = Math.max(0, this.screenShake.strength - deltaMs * 0.02);
         this.transitionOverlay = Math.max(0, this.transitionOverlay - deltaMs * 0.0015);
         this.subPhaseTransition = Math.max(0, this.subPhaseTransition - deltaMs * 0.0012);
-        if (this.centerMessage) {
-          this.centerMessage.age = (this.centerMessage.age || 0) + deltaMs;
-          this.centerMessage.timer -= deltaMs;
-          if (this.centerMessage.timer <= 0) {
-            this.centerMessage = null;
-          }
-        }
-        if (this.memoryMessage) {
-          this.memoryMessage.age = (this.memoryMessage.age || 0) + deltaMs;
-          this.memoryMessage.timer -= deltaMs;
-          if (this.memoryMessage.timer <= 0) {
-            this.memoryMessage = null;
+        if (this.activeNarrative) {
+          this.activeNarrative.age += deltaMs;
+          this.activeNarrative.timer -= deltaMs;
+          if (this.activeNarrative.timer <= 0) {
+            this.dismissNarrative(true);
           }
         }
         if (this.subPhaseLabel) {
@@ -2832,7 +2928,7 @@
         this.updateMovingPlatforms();
         this.processVirtualUiInputs();
 
-        this.player.handleInput(this.input, !this.dialogue.isBlocking() && this.controlLockTimer <= 0);
+        this.player.handleInput(this.input, !this.dialogue.isBlocking() && !this.activeNarrative?.pauseGameplay && this.controlLockTimer <= 0 && this.narrativeLockTimer <= 0);
         const previousX = this.player.x;
         const previousY = this.player.y;
         const jumped = this.player.update(scaledDelta, this.gravity);
@@ -2855,7 +2951,7 @@
         this.updateCamera();
         this.updateEffects(scaledDelta);
 
-        this.fadeTarget = this.dialogue.isBlocking() ? 0.18 : 0;
+        this.fadeTarget = (this.dialogue.isBlocking() || this.activeNarrative?.pauseGameplay) ? 0.18 : 0;
         this.fadeTarget += this.tempModifier.darkness || 0;
         if (this.controlLockTimer > 0) {
           this.fadeTarget += 0.1;
@@ -2912,7 +3008,7 @@
             if (this.endingScene.fadeOut >= 1) {
               this.state = "complete";
               this.endingScene = null;
-              this.centerMessage = null;
+              this.activeNarrative = null;
               this.audio.pauseAmbient(true);
               this.saveProgress();
               this.showScreen(
@@ -3115,12 +3211,12 @@
       }
 
       drawMemoryMessage() {
-        if (!this.memoryMessage) return;
+        if (!this.activeNarrative || this.activeNarrative.position !== "lower") return;
         ctx.save();
-        const fadeIn = clamp((this.memoryMessage.age || 0) / 240, 0, 1);
-        const fadeOut = clamp(this.memoryMessage.timer / 2200, 0, 1);
+        const fadeIn = clamp((this.activeNarrative.age || 0) / 240, 0, 1);
+        const fadeOut = clamp(this.activeNarrative.timer / this.activeNarrative.totalDuration, 0, 1);
         ctx.globalAlpha = Math.min(fadeIn, fadeOut);
-        this.drawNarrativeBox([this.memoryMessage.text], {
+        this.drawNarrativeBox(this.activeNarrative.lines, {
           x: canvas.width / 2,
           y: canvas.height - 54,
           width: Math.min(canvas.width - 28, 700),
@@ -3137,14 +3233,14 @@
       }
 
       drawCenterMessage() {
-        if (!this.centerMessage) return;
-        const fadeIn = clamp((this.centerMessage.age || 0) / 260, 0, 1);
-        const fadeOut = clamp(this.centerMessage.timer / 3600, 0, 1);
+        if (!this.activeNarrative || this.activeNarrative.position !== "center") return;
+        const fadeIn = clamp((this.activeNarrative.age || 0) / 260, 0, 1);
+        const fadeOut = clamp(this.activeNarrative.timer / this.activeNarrative.totalDuration, 0, 1);
         const alpha = Math.min(fadeIn, fadeOut);
         ctx.save();
         ctx.globalAlpha = alpha;
-        const y = this.centerMessage.position === "lower" ? canvas.height - 104 : canvas.height / 2;
-        this.drawNarrativeBox(this.centerMessage.lines, {
+        const y = canvas.height / 2;
+        this.drawNarrativeBox(this.activeNarrative.lines, {
           x: canvas.width / 2,
           y,
           width: Math.min(canvas.width - 32, 760),
