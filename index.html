@@ -2767,12 +2767,14 @@
         this.transitionOverlay = Math.max(0, this.transitionOverlay - deltaMs * 0.0015);
         this.subPhaseTransition = Math.max(0, this.subPhaseTransition - deltaMs * 0.0012);
         if (this.centerMessage) {
+          this.centerMessage.age = (this.centerMessage.age || 0) + deltaMs;
           this.centerMessage.timer -= deltaMs;
           if (this.centerMessage.timer <= 0) {
             this.centerMessage = null;
           }
         }
         if (this.memoryMessage) {
+          this.memoryMessage.age = (this.memoryMessage.age || 0) + deltaMs;
           this.memoryMessage.timer -= deltaMs;
           if (this.memoryMessage.timer <= 0) {
             this.memoryMessage = null;
@@ -3058,9 +3060,9 @@
         lineGap = 12,
         paddingX = 18,
         paddingY = 16,
-        background = "rgba(7, 10, 16, 0.78)",
-        border = "rgba(255, 245, 225, 0.16)",
-        textColor = "#fff4e1",
+        background = "rgba(0, 0, 0, 0.7)",
+        border = "rgba(255, 255, 255, 0.14)",
+        textColor = "#ffffff",
       } = {}) {
         const contentLines = lines.filter(Boolean);
         if (!contentLines.length) return;
@@ -3115,24 +3117,30 @@
       drawMemoryMessage() {
         if (!this.memoryMessage) return;
         ctx.save();
-        ctx.globalAlpha = clamp(this.memoryMessage.timer / 2200, 0, 1);
+        const fadeIn = clamp((this.memoryMessage.age || 0) / 240, 0, 1);
+        const fadeOut = clamp(this.memoryMessage.timer / 2200, 0, 1);
+        ctx.globalAlpha = Math.min(fadeIn, fadeOut);
         this.drawNarrativeBox([this.memoryMessage.text], {
           x: canvas.width / 2,
           y: canvas.height - 54,
           width: Math.min(canvas.width - 28, 700),
-          align: "left",
+          align: "center",
           fontPrimary: "18px Georgia",
           lineGap: 8,
           paddingX: 16,
           paddingY: 12,
-          background: "rgba(6, 8, 14, 0.82)",
+          background: "rgba(0, 0, 0, 0.7)",
+          border: "rgba(255, 255, 255, 0.14)",
+          textColor: "#ffffff",
         });
         ctx.restore();
       }
 
       drawCenterMessage() {
         if (!this.centerMessage) return;
-        const alpha = clamp(this.centerMessage.timer / 3600, 0, 1);
+        const fadeIn = clamp((this.centerMessage.age || 0) / 260, 0, 1);
+        const fadeOut = clamp(this.centerMessage.timer / 3600, 0, 1);
+        const alpha = Math.min(fadeIn, fadeOut);
         ctx.save();
         ctx.globalAlpha = alpha;
         const y = this.centerMessage.position === "lower" ? canvas.height - 104 : canvas.height / 2;
@@ -3143,7 +3151,9 @@
           align: "center",
           fontPrimary: "28px Georgia",
           fontSecondary: "18px Georgia",
-          textColor: this.centerMessage.color || "#fff3d7",
+          background: "rgba(0, 0, 0, 0.7)",
+          border: "rgba(255, 255, 255, 0.14)",
+          textColor: "#ffffff",
         });
         ctx.restore();
       }
