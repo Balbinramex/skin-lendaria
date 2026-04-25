@@ -2,7 +2,12 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#05070d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <title>Skin Lendaria - V2</title>
   <style>
     :root {
@@ -21,6 +26,7 @@
 
     body {
       margin: 0;
+      width: 100vw;
       min-height: 100vh;
       display: grid;
       place-items: center;
@@ -30,16 +36,28 @@
         linear-gradient(180deg, #11131a 0%, #06070b 100%);
       font-family: Georgia, "Times New Roman", serif;
       color: var(--text-main);
+      touch-action: none;
+      overscroll-behavior: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
     }
 
     .frame {
-      width: min(100vw, 1120px);
-      padding: 16px;
+      width: 100vw;
+      height: 100vh;
+      padding: 0;
+      display: grid;
+      place-items: center;
     }
 
     .game-shell {
       position: relative;
       overflow: hidden;
+      width: var(--game-width, min(100vw, 1120px));
+      height: var(--game-height, calc(min(100vw, 1120px) * 0.5625));
+      max-width: 100vw;
+      max-height: 100vh;
       border-radius: 26px;
       border: 1px solid rgba(255, 247, 232, 0.16);
       background: rgba(255, 255, 255, 0.08);
@@ -52,8 +70,10 @@
     canvas {
       display: block;
       width: 100%;
-      height: auto;
-      aspect-ratio: 16 / 9;
+      height: 100%;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      touch-action: none;
     }
 
     .hud-layer {
@@ -66,7 +86,8 @@
       position: absolute;
       top: 16px;
       left: 16px;
-      width: min(380px, calc(100% - 32px));
+      width: min(360px, calc(100% - 32px));
+      max-width: calc(100% - 32px);
       padding: 14px 14px 12px;
       border-radius: 20px;
       background: rgba(10, 12, 18, 0.62);
@@ -95,6 +116,7 @@
       justify-content: space-between;
       gap: 12px;
       margin-bottom: 12px;
+      min-width: 0;
     }
 
     .hud-kicker {
@@ -110,6 +132,7 @@
     .hud-phase {
       font-size: 20px;
       line-height: 1.1;
+      word-break: break-word;
     }
 
     .hud-subphase {
@@ -117,6 +140,7 @@
       color: var(--text-soft);
       font-size: 13px;
       line-height: 1.35;
+      max-width: 132px;
     }
 
     .energy-panel {
@@ -213,7 +237,8 @@
       left: 50%;
       bottom: 18px;
       transform: translateX(-50%) translateY(12px);
-      width: min(92%, 760px);
+      width: min(92%, 720px);
+      max-width: calc(100% - 24px);
       padding: 18px 20px 16px;
       border-radius: 22px;
       background:
@@ -327,7 +352,7 @@
       position: absolute;
       top: 86px;
       right: 18px;
-      max-width: 240px;
+      max-width: min(240px, calc(100% - 36px));
       padding: 10px 12px;
       border-radius: 14px;
       background: rgba(11, 13, 20, 0.62);
@@ -362,6 +387,92 @@
     .screen.pause-screen {
       background: rgba(5, 8, 14, 0.52);
       pointer-events: auto;
+    }
+
+    .orientation-overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(4, 6, 10, 0.42);
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    .orientation-overlay.is-visible {
+      display: grid;
+    }
+
+    .orientation-card {
+      max-width: min(88vw, 380px);
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(8, 10, 16, 0.82);
+      border: 1px solid rgba(255, 245, 225, 0.14);
+      color: var(--text-main);
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.55;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+
+    .touch-ui {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 3;
+      display: none;
+    }
+
+    .touch-ui.is-hidden {
+      display: none !important;
+    }
+
+    .touch-cluster {
+      position: absolute;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      display: grid;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .touch-cluster.left {
+      left: max(12px, env(safe-area-inset-left));
+      grid-template-columns: repeat(2, 72px);
+    }
+
+    .touch-cluster.right {
+      right: max(12px, env(safe-area-inset-right));
+      grid-template-columns: repeat(2, 72px);
+    }
+
+    .touch-button {
+      width: 72px;
+      height: 72px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 245, 225, 0.14);
+      background: rgba(8, 10, 16, 0.54);
+      color: var(--text-main);
+      font-size: 18px;
+      font-family: inherit;
+      pointer-events: auto;
+      touch-action: none;
+      backdrop-filter: blur(8px);
+    }
+
+    .touch-button.wide {
+      width: 154px;
+      grid-column: span 2;
+    }
+
+    .touch-button:active,
+    .touch-button.is-active {
+      background: rgba(246, 209, 139, 0.2);
+      border-color: rgba(246, 209, 139, 0.28);
+      color: var(--accent);
     }
 
     .screen-card {
@@ -560,6 +671,61 @@
         filter: brightness(1.15);
       }
     }
+
+    @media (max-width: 780px) {
+      .frame {
+        padding: 0;
+      }
+
+      .hud {
+        top: 10px;
+        left: 10px;
+        width: min(290px, calc(100% - 20px));
+        padding: 12px;
+      }
+
+      .hud-phase {
+        font-size: 17px;
+      }
+
+      .hud-subphase {
+        max-width: 118px;
+        font-size: 11px;
+      }
+
+      .hud-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .stat-card {
+        padding: 8px 10px;
+      }
+
+      .stat-card span {
+        font-size: 14px;
+      }
+
+      .overlay {
+        bottom: 10px;
+        width: calc(100% - 20px);
+        padding: 16px 16px 14px;
+      }
+
+      #dialogueText {
+        font-size: 18px;
+      }
+
+      .footer {
+        display: none;
+      }
+    }
+
+    @media (hover: none), (pointer: coarse) {
+      .touch-ui {
+        display: block;
+      }
+    }
   </style>
 </head>
 <body>
@@ -637,6 +803,24 @@
             </div>
           </div>
         </div>
+
+        <div class="orientation-overlay" id="orientationOverlay">
+          <div class="orientation-card">Para melhor experiencia, vire o celular na horizontal. Ainda assim, voce pode continuar jogando em retrato.</div>
+        </div>
+      </div>
+
+      <div class="touch-ui" id="touchUi">
+        <div class="touch-cluster left">
+          <button class="touch-button" data-touch-key="arrowleft" aria-label="Mover para a esquerda">◀</button>
+          <button class="touch-button" data-touch-key="arrowright" aria-label="Mover para a direita">▶</button>
+        </div>
+        <div class="touch-cluster right">
+          <button class="touch-button" data-touch-key="1" aria-label="Escolha 1">1</button>
+          <button class="touch-button" data-touch-key="2" aria-label="Escolha 2">2</button>
+          <button class="touch-button" data-touch-key="e" aria-label="Interagir">E</button>
+          <button class="touch-button" data-touch-key=" " aria-label="Pular">▲</button>
+          <button class="touch-button wide" id="touchMuteButton" aria-label="Mute">Som</button>
+        </div>
       </div>
     </div>
 
@@ -646,6 +830,7 @@
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
+    const SHOW_DEBUG = false;
 
     function clamp(value, min, max) {
       return Math.max(min, Math.min(max, value));
@@ -812,6 +997,7 @@
       constructor() {
         this.keys = {};
         this.justPressed = {};
+        this.virtualKeys = {};
         window.addEventListener("keydown", (event) => {
           const key = event.key.toLowerCase();
           if (!this.keys[key]) {
@@ -824,8 +1010,16 @@
         });
       }
 
+      setVirtualKey(key, pressed) {
+        const normalized = key.toLowerCase();
+        if (pressed && !this.virtualKeys[normalized]) {
+          this.justPressed[normalized] = true;
+        }
+        this.virtualKeys[normalized] = pressed;
+      }
+
       isPressed(...aliases) {
-        return aliases.some((key) => this.keys[key]);
+        return aliases.some((key) => this.keys[key] || this.virtualKeys[key]);
       }
 
       wasPressed(...aliases) {
@@ -1537,6 +1731,10 @@
         this.silenceMomentTimer = 0;
         this.controlLockTimer = 0;
         this.timeScale = 1;
+        this.isMobile = window.matchMedia("(hover: none), (pointer: coarse)").matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        this.particleScale = this.isMobile ? 0.55 : 1;
+        this.maxParticles = this.isMobile ? 120 : 260;
+        this.shakeScale = this.isMobile ? 0.55 : 1;
         this.audio = new AudioSystem();
         this.input = new InputController();
         this.player = new Player();
@@ -1557,6 +1755,9 @@
         this.toggleSoundButtonEl = document.getElementById("toggleSoundButton");
         this.backToMenuButtonEl = document.getElementById("backToMenuButton");
         this.npcPromptEl = document.getElementById("npcPrompt");
+        this.orientationOverlayEl = document.getElementById("orientationOverlay");
+        this.touchUiEl = document.getElementById("touchUi");
+        this.touchMuteButtonEl = document.getElementById("touchMuteButton");
         this.activeNpc = null;
         this.stats = {
           resiliencia: 0,
@@ -1601,10 +1802,63 @@
           this.hidePauseScreen();
           this.showPhaseSelect();
         });
+        this.touchMuteButtonEl.addEventListener("click", (event) => {
+          event.preventDefault();
+          this.audio.ensureReady();
+          this.audio.toggleMute();
+          this.refreshHud();
+        });
+        this.setupTouchControls();
+        this.handleViewportChange();
+        window.addEventListener("resize", () => this.handleViewportChange());
+        window.addEventListener("orientationchange", () => this.handleViewportChange());
+        window.addEventListener("pointerdown", () => this.audio.ensureReady(), { once: true });
+        window.addEventListener("touchstart", () => this.audio.ensureReady(), { once: true, passive: true });
         window.addEventListener("keydown", (event) => this.handleKey(event));
         this.loadSavedProgress();
         this.loadPhase(0, true, false);
         this.showStartScreen();
+      }
+
+      setupTouchControls() {
+        if (!this.touchUiEl) return;
+        this.touchUiEl.querySelectorAll("[data-touch-key]").forEach((button) => {
+          const key = button.dataset.touchKey;
+          const release = () => {
+            this.input.setVirtualKey(key, false);
+            button.classList.remove("is-active");
+          };
+          const press = (event) => {
+            event.preventDefault();
+            this.audio.ensureReady();
+            this.input.setVirtualKey(key, true);
+            button.classList.add("is-active");
+          };
+          button.addEventListener("touchstart", press, { passive: false });
+          button.addEventListener("touchend", release);
+          button.addEventListener("touchcancel", release);
+          button.addEventListener("mousedown", press);
+          button.addEventListener("mouseup", release);
+          button.addEventListener("mouseleave", release);
+        });
+      }
+
+      handleViewportChange() {
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const aspect = canvas.width / canvas.height;
+        let width = viewportWidth;
+        let height = width / aspect;
+        if (height > viewportHeight) {
+          height = viewportHeight;
+          width = height * aspect;
+        }
+
+        document.documentElement.style.setProperty("--game-width", `${Math.floor(width)}px`);
+        document.documentElement.style.setProperty("--game-height", `${Math.floor(height)}px`);
+        if (this.orientationOverlayEl) {
+          this.orientationOverlayEl.classList.toggle("is-visible", this.isMobile && viewportHeight > viewportWidth);
+        }
       }
 
       loadSavedProgress() {
@@ -1744,6 +1998,7 @@
         this.checkpoint = { ...this.phase.checkpoint };
         this.player.reset(this.checkpoint.x, this.checkpoint.y);
         this.state = startPlaying ? "play" : this.state;
+        this.updateTouchUiVisibility();
         this.cameraX = 0;
         this.fadeTarget = 0;
         this.fade = 0;
@@ -1821,6 +2076,7 @@
 
       showPauseScreen() {
         this.state = "pause";
+        this.updateTouchUiVisibility();
         this.pauseScreenEl.classList.add("is-visible");
       }
 
@@ -1832,6 +2088,7 @@
         if (this.state !== "pause") return;
         this.hidePauseScreen();
         this.state = "play";
+        this.updateTouchUiVisibility();
       }
 
       advancePhase() {
@@ -1881,6 +2138,7 @@
 
       startEndingScene() {
         this.state = "ending";
+        this.updateTouchUiVisibility();
         this.timeScale = 0.82;
         this.controlLockTimer = 2600;
         this.audio.setTheme("ending");
@@ -1944,6 +2202,10 @@
         if (this.toggleSoundButtonEl) {
           this.toggleSoundButtonEl.textContent = this.audio.isMuted ? "Som OFF" : "Som ON";
         }
+        if (this.touchMuteButtonEl) {
+          this.touchMuteButtonEl.textContent = this.audio.isMuted ? "Som OFF" : "Som ON";
+        }
+        this.updateTouchUiVisibility();
         this.hudEl.innerHTML = `
           <div class="hud-header">
             <div>
@@ -2041,6 +2303,7 @@
         this.screenTextEl.textContent = text;
         this.screenHintEl.textContent = hint;
         this.screenEl.classList.add("is-visible");
+        this.updateTouchUiVisibility();
       }
 
       hideScreen() {
@@ -2051,6 +2314,7 @@
         this.state = "start";
         this.hideScreen();
         this.hidePauseScreen();
+        this.updateTouchUiVisibility();
         this.startScreenEl.classList.add("is-visible");
         this.phaseSelectScreenEl.classList.remove("is-visible");
         this.dialogue.close();
@@ -2062,6 +2326,7 @@
         this.state = "phase-select";
         this.hideScreen();
         this.hidePauseScreen();
+        this.updateTouchUiVisibility();
         this.startScreenEl.classList.remove("is-visible");
         this.phaseSelectScreenEl.classList.add("is-visible");
         this.dialogue.close();
@@ -2074,6 +2339,7 @@
         this.startScreenEl.classList.remove("is-visible");
         this.phaseSelectScreenEl.classList.remove("is-visible");
         this.hidePauseScreen();
+        this.updateTouchUiVisibility();
         this.hudEl.classList.remove("is-hidden");
       }
 
@@ -2110,6 +2376,25 @@
         this.stats = { resiliencia: 0, energia: this.maxEnergy, clareza: 0, memoria: 0 };
         this.loadPhase(index, false, true);
         this.saveProgress();
+      }
+
+      updateTouchUiVisibility() {
+        if (!this.touchUiEl) return;
+        const visible = this.isMobile && (this.state === "play" || this.state === "pause" || this.state === "ending");
+        this.touchUiEl.classList.toggle("is-hidden", !visible);
+      }
+
+      processVirtualUiInputs() {
+        if (this.dialogue.isBlocking()) {
+          if (this.input.wasPressed("1")) this.dialogue.handleKey({ key: "1" });
+          if (this.input.wasPressed("2")) this.dialogue.handleKey({ key: "2" });
+          if (this.input.wasPressed(" ")) this.dialogue.handleKey({ key: " " });
+          return;
+        }
+
+        if (this.state === "play" && this.input.wasPressed("e")) {
+          this.tryInteractWithNpc();
+        }
       }
 
       openDialogue(dialogue) {
@@ -2187,7 +2472,9 @@
       }
 
       spawnParticles(x, y, color, count = 8) {
-        for (let i = 0; i < count; i++) {
+        const burst = Math.max(1, Math.round(count * this.particleScale));
+        for (let i = 0; i < burst; i++) {
+          if (this.particles.length >= this.maxParticles) break;
           this.particles.push({
             x,
             y,
@@ -2205,7 +2492,7 @@
         this.player.invulnerableTimer = 1000;
         this.player.damageFlashTimer = 180;
         this.damageOverlay = 0.34;
-        this.screenShake.strength = source === "spike" ? 5.5 : 3.5;
+        this.screenShake.strength = (source === "spike" ? 5.5 : 3.5) * this.shakeScale;
         this.audio.hurt();
         if (source === "spike") {
           this.player.vx = this.player.facing * -3.5;
@@ -2465,7 +2752,7 @@
           });
         }
         if (this.tempModifier.courage && Math.abs(this.player.vx) > 0.8) {
-          this.particles.push({
+          if (this.particles.length < this.maxParticles) this.particles.push({
             x: this.player.x + this.player.width / 2,
             y: this.player.y + this.player.height / 2,
             vx: (Math.random() - 0.5) * 0.8,
@@ -2526,7 +2813,10 @@
       }
 
       update(deltaMs) {
-        if (this.state === "pause") return;
+        if (this.state === "pause") {
+          this.input.endFrame();
+          return;
+        }
         if (this.state !== "play" && this.state !== "ending") return;
 
         if (this.state === "ending") {
@@ -2538,6 +2828,7 @@
         const scaledDelta = deltaMs * this.timeScale;
         this.dialogue.update(scaledDelta);
         this.updateMovingPlatforms();
+        this.processVirtualUiInputs();
 
         this.player.handleInput(this.input, !this.dialogue.isBlocking() && this.controlLockTimer <= 0);
         const previousX = this.player.x;
@@ -2598,8 +2889,8 @@
           this.endingScene.timer = Math.max(0, this.endingScene.timer - scaledDelta);
           this.endingScene.particleTimer -= scaledDelta;
           if (this.endingScene.particleTimer <= 0) {
-            this.endingScene.particleTimer = 160;
-            this.particles.push({
+            this.endingScene.particleTimer = this.isMobile ? 220 : 160;
+            if (this.particles.length < this.maxParticles) this.particles.push({
               x: this.player.x + 4 + Math.random() * (this.player.width + 16),
               y: this.player.y + 8 + Math.random() * 26,
               vx: (Math.random() - 0.5) * 0.35,
@@ -2757,13 +3048,85 @@
         });
       }
 
+      drawNarrativeBox(lines, {
+        x = canvas.width / 2,
+        y = canvas.height / 2,
+        width = Math.min(canvas.width - 36, 720),
+        align = "center",
+        fontPrimary = "26px Georgia",
+        fontSecondary = "18px Georgia",
+        lineGap = 12,
+        paddingX = 18,
+        paddingY = 16,
+        background = "rgba(7, 10, 16, 0.78)",
+        border = "rgba(255, 245, 225, 0.16)",
+        textColor = "#fff4e1",
+      } = {}) {
+        const contentLines = lines.filter(Boolean);
+        if (!contentLines.length) return;
+
+        const safeWidth = Math.min(width, canvas.width - 24);
+        const wrappedLines = [];
+        contentLines.forEach((line, index) => {
+          const font = index === 0 ? fontPrimary : fontSecondary;
+          ctx.font = font;
+          const words = line.split(" ");
+          let currentLine = "";
+          words.forEach((word) => {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            if (ctx.measureText(testLine).width > safeWidth - paddingX * 2 && currentLine) {
+              wrappedLines.push({ text: currentLine, font, isPrimary: index === 0 });
+              currentLine = word;
+            } else {
+              currentLine = testLine;
+            }
+          });
+          if (currentLine) {
+            wrappedLines.push({ text: currentLine, font, isPrimary: index === 0 });
+          }
+        });
+
+        const lineHeights = wrappedLines.map((line) => line.isPrimary ? 30 : 24);
+        const boxHeight = lineHeights.reduce((sum, height) => sum + height, 0) + lineGap * (wrappedLines.length - 1) + paddingY * 2;
+        const boxX = clamp(x - safeWidth / 2, 12, canvas.width - safeWidth - 12);
+        const boxY = clamp(y - boxHeight / 2, 12, canvas.height - boxHeight - 12);
+
+        ctx.save();
+        ctx.fillStyle = background;
+        ctx.strokeStyle = border;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, safeWidth, boxHeight, 18);
+        ctx.fill();
+        ctx.stroke();
+
+        let cursorY = boxY + paddingY + 20;
+        wrappedLines.forEach((line, index) => {
+          ctx.font = line.font;
+          ctx.fillStyle = textColor;
+          const lineWidth = ctx.measureText(line.text).width;
+          const textX = align === "center" ? boxX + safeWidth / 2 - lineWidth / 2 : boxX + paddingX;
+          ctx.fillText(line.text, textX, cursorY);
+          cursorY += lineHeights[index] + lineGap;
+        });
+        ctx.restore();
+      }
+
       drawMemoryMessage() {
         if (!this.memoryMessage) return;
         ctx.save();
         ctx.globalAlpha = clamp(this.memoryMessage.timer / 2200, 0, 1);
-        ctx.fillStyle = "#fff4d5";
-        ctx.font = "18px Georgia";
-        ctx.fillText(this.memoryMessage.text, 80, canvas.height - 60);
+        this.drawNarrativeBox([this.memoryMessage.text], {
+          x: canvas.width / 2,
+          y: canvas.height - 54,
+          width: Math.min(canvas.width - 28, 700),
+          align: "left",
+          fontPrimary: "18px Georgia",
+          lineGap: 8,
+          paddingX: 16,
+          paddingY: 12,
+          background: "rgba(6, 8, 14, 0.82)",
+        });
         ctx.restore();
       }
 
@@ -2772,12 +3135,15 @@
         const alpha = clamp(this.centerMessage.timer / 3600, 0, 1);
         ctx.save();
         ctx.globalAlpha = alpha;
-        ctx.fillStyle = this.centerMessage.color || "#fff3d7";
-        const baseY = this.centerMessage.position === "lower" ? canvas.height - 120 : canvas.height / 2 - 20;
-        this.centerMessage.lines.forEach((line, index) => {
-          ctx.font = index === 0 ? "28px Georgia" : "18px Georgia";
-          const width = ctx.measureText(line).width;
-          ctx.fillText(line, canvas.width / 2 - width / 2, baseY + index * 32);
+        const y = this.centerMessage.position === "lower" ? canvas.height - 104 : canvas.height / 2;
+        this.drawNarrativeBox(this.centerMessage.lines, {
+          x: canvas.width / 2,
+          y,
+          width: Math.min(canvas.width - 32, 760),
+          align: "center",
+          fontPrimary: "28px Georgia",
+          fontSecondary: "18px Georgia",
+          textColor: this.centerMessage.color || "#fff3d7",
         });
         ctx.restore();
       }
@@ -2818,6 +3184,32 @@
             ctx.fillRect(x, platform.y, platform.width, 4);
           }
         });
+      }
+
+      drawDebugOverlay() {
+        if (!SHOW_DEBUG || !this.phase) return;
+        ctx.save();
+        ctx.lineWidth = 1;
+
+        ctx.strokeStyle = "rgba(80, 220, 255, 0.65)";
+        this.phase.platforms.forEach((platform) => {
+          ctx.strokeRect(platform.x - this.cameraX, platform.y, platform.width, platform.height);
+        });
+
+        ctx.strokeStyle = "rgba(255, 110, 110, 0.75)";
+        this.phase.spikes.forEach((spike) => {
+          ctx.strokeRect(spike.x - this.cameraX, spike.y, spike.width, spike.height);
+        });
+
+        ctx.strokeStyle = "rgba(255, 190, 90, 0.75)";
+        this.phase.pits.forEach((pit) => {
+          ctx.strokeRect(pit.x - this.cameraX, pit.y, pit.width, 28);
+        });
+
+        ctx.strokeStyle = "rgba(180, 255, 180, 0.8)";
+        const playerBounds = this.player.getBounds();
+        ctx.strokeRect(playerBounds.x - this.cameraX, playerBounds.y, playerBounds.width, playerBounds.height);
+        ctx.restore();
       }
 
       drawBackground() {
@@ -3010,6 +3402,7 @@
         this.drawFloatingTexts();
         this.drawMemoryMessage();
         this.drawCenterMessage();
+        this.drawDebugOverlay();
         this.drawAtmosphere();
         this.drawSubPhaseLabel();
         ctx.restore();
